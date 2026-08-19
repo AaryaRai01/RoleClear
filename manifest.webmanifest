@@ -1,0 +1,17 @@
+{
+  "name": "RoleClear",
+  "short_name": "RoleClear",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f8f6",
+  "theme_color": "#172321",
+  "description": "A clearer career operating system for students and freshers.",
+  "icons": [
+    {
+      "src": "/roleclear-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
