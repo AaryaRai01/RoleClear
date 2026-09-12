@@ -1,0 +1,400 @@
+/* ======================================================================
+   ROLECLEAR FINAL VISIBILITY + LAYOUT FIXES
+   Load LAST. Visual only; no workflow/state/API changes.
+   Palette: white/black + restrained orange/blue/yellow/red.
+   ====================================================================== */
+
+:root {
+  --rf-ink: #111318;
+  --rf-copy: #545b66;
+  --rf-muted: #7b838f;
+  --rf-line: #e4e7eb;
+  --rf-bg: #f7f8fa;
+  --rf-card: #ffffff;
+  --rf-black: #151518;
+  --rf-orange: #ff681c;
+  --rf-orange-deep: #e9550c;
+  --rf-blue: #356cf6;
+  --rf-blue-soft: #edf3ff;
+  --rf-yellow: #e4a900;
+  --rf-red: #df4148;
+}
+
+/* ----------------------------------------------------------------------
+   LANDING — bright white/black system, not an all-black page
+   ---------------------------------------------------------------------- */
+.landing-page {
+  background: #f8f8f6 !important;
+  color: var(--rf-ink) !important;
+}
+.landing-page::before {
+  width: 440px !important;
+  height: 440px !important;
+  background: radial-gradient(circle, rgba(255,104,28,.13), transparent 68%) !important;
+  opacity: 1 !important;
+}
+.landing-page::after {
+  width: 420px !important;
+  height: 420px !important;
+  background: radial-gradient(circle, rgba(53,108,246,.08), transparent 68%) !important;
+  opacity: 1 !important;
+}
+.landing-nav {
+  background: rgba(255,255,255,.90) !important;
+  border-bottom: 1px solid var(--rf-line) !important;
+  box-shadow: 0 8px 28px rgba(17,19,24,.035) !important;
+}
+.landing-nav .brand,
+.landing-nav .brand > span:last-child { color: var(--rf-ink) !important; }
+.landing-links a { color: #656b75 !important; font-weight: 650 !important; }
+.landing-links a:hover { color: var(--rf-ink) !important; }
+.landing-nav .button-ghost { color: var(--rf-ink) !important; }
+
+.hero { color: var(--rf-ink) !important; }
+.hero-copy h1 { color: var(--rf-ink) !important; }
+.hero-copy h1 em { color: var(--rf-orange) !important; }
+.hero-sub { color: #22252b !important; }
+.hero-description { color: #626976 !important; }
+.eyebrow { color: #6e7480 !important; }
+.trust-line { color: #6f7680 !important; }
+
+/* Keep the product mockup readable against the light hero. */
+.hero-card.main-flow {
+  background: #ffffff !important;
+  color: var(--rf-ink) !important;
+  border: 1px solid #dfe3e8 !important;
+  box-shadow: 0 26px 70px rgba(17,19,24,.15) !important;
+}
+.hero-card.main-flow p,
+.hero-card.main-flow span:not(.live-pill):not(.mini-label) { color: #66707d !important; }
+.hero-card.main-flow h3,
+.hero-card.main-flow b,
+.hero-card.main-flow strong { color: var(--rf-ink) !important; }
+.floating-card {
+  background: #fff !important;
+  color: var(--rf-ink) !important;
+  border: 1px solid #dde2e8 !important;
+  box-shadow: 0 16px 42px rgba(17,19,24,.12) !important;
+}
+.floating-card span { color: #616976 !important; }
+.fit-card strong,
+.flow-footer strong { color: var(--rf-orange) !important; }
+.live-pill,
+.live-pill span,
+.mission-check { color: var(--rf-orange) !important; }
+.flow-progress > span { background: linear-gradient(90deg,var(--rf-orange),#ff9a5c) !important; }
+.visual-orbit { border-color: rgba(17,19,24,.16) !important; }
+
+.proof-strip {
+  background: #171719 !important;
+  color: #fff !important;
+  border-color: #171719 !important;
+}
+.proof-flow b { color: #fff !important; }
+.proof-flow i { color: #8e9299 !important; }
+
+.how-section {
+  background: #fff !important;
+  color: var(--rf-ink) !important;
+}
+.how-section .section-heading h2 { color: var(--rf-ink) !important; }
+.how-section .section-heading h2 em { color: var(--rf-orange) !important; }
+.how-section .section-heading p { color: #616874 !important; }
+.feature-card {
+  background: #fff !important;
+  border: 1px solid var(--rf-line) !important;
+  box-shadow: 0 8px 26px rgba(17,19,24,.045) !important;
+}
+.feature-card h3 { color: var(--rf-ink) !important; font-size: 20px !important; }
+.feature-card p { color: #606875 !important; font-size: 14px !important; line-height: 1.6 !important; }
+.feature-icon { color: var(--rf-orange) !important; background: #fff1e8 !important; }
+
+/* Keep one strong black section for visual contrast. */
+.dark-section {
+  background: #171719 !important;
+  color: #fff !important;
+}
+.dark-section .section-heading h2,
+.dark-section .light-heading h2 { color: #fff !important; }
+.dark-section .section-heading h2 em,
+.dark-section .light-heading h2 em { color: #ff8a42 !important; }
+.dark-section .section-heading p,
+.dark-section .light-heading p { color: #afb3bb !important; }
+.dark-section .section-kicker { color: #9ea3ac !important; }
+
+/* Four command-center boxes: data only. Remove decorative circles/squares. */
+.product-panel,
+.product-panel.panel-large,
+.product-panel.panel-track,
+.product-panel.panel-resume,
+.product-panel.panel-inbox {
+  min-height: 292px !important;
+  background: #212124 !important;
+  border: 1px solid #3a3b40 !important;
+  box-shadow: none !important;
+  color: #fff !important;
+  overflow: hidden !important;
+}
+.product-panel::before,
+.product-panel::after,
+.product-panel > div::before,
+.product-panel > div::after {
+  box-shadow: none !important;
+}
+/* Hide old purely decorative geometry while retaining actual data components. */
+.product-panel .shape,
+.product-panel .panel-shape,
+.product-panel .decorative-shape,
+.product-panel .panel-decoration,
+.product-panel > i:not(.status-dot) { display: none !important; }
+.product-panel h3 {
+  color: #fff !important;
+  font-size: clamp(27px,2.3vw,36px) !important;
+  line-height: 1.02 !important;
+  letter-spacing: -.04em !important;
+}
+.product-panel p {
+  color: #c0c3ca !important;
+  font-size: 14px !important;
+  line-height: 1.55 !important;
+  max-width: 430px !important;
+}
+.panel-label { color: #aeb2bb !important; font-size: 11px !important; }
+.score-preview span,
+.product-panel small { color: #9fa4ae !important; }
+.score-preview strong { color: #ff914d !important; font-size: 28px !important; }
+.score-preview b { color: #f2f2f3 !important; }
+.mini-kanban span {
+  background: #2c2d31 !important;
+  color: #d4d6db !important;
+  border: 1px solid #414249 !important;
+}
+.mini-kanban span:nth-child(2) { border-color: rgba(53,108,246,.65) !important; }
+.mini-kanban span:nth-child(3) { border-color: rgba(255,104,28,.62) !important; }
+.mini-kanban b { color: #fff !important; font-size: 25px !important; }
+.resume-bars span:nth-child(1) { background: #ff7b2e !important; }
+.resume-bars span:nth-child(2) { background: #4d7cf6 !important; }
+.resume-bars span:nth-child(3) { background: #a7adb7 !important; }
+.product-panel .mail-preview {
+  background: #fff !important;
+  color: var(--rf-ink) !important;
+  border: 0 !important;
+}
+.product-panel .mail-preview b { color: var(--rf-ink) !important; }
+.product-panel .mail-preview small { color: #7b838f !important; }
+.mail-avatar { background: #fff0e5 !important; color: var(--rf-orange-deep) !important; }
+.unread-dot { background: var(--rf-orange) !important; }
+
+.privacy-section,
+.final-cta,
+.landing-footer { background: #fff !important; color: var(--rf-ink) !important; }
+.privacy-section p,
+.landing-footer { color: #666d78 !important; }
+
+/* ----------------------------------------------------------------------
+   SIDEBAR — account and sign-out must stay visible on black
+   ---------------------------------------------------------------------- */
+.sidebar-bottom { border-top-color: rgba(255,255,255,.10) !important; }
+.sidebar .profile-button {
+  background: rgba(255,255,255,.045) !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  color: #fff !important;
+}
+.sidebar .profile-button b { color: #fff !important; }
+.sidebar .profile-button small { color: #9da1aa !important; }
+.sidebar .profile-avatar {
+  background: #fff1e8 !important;
+  color: var(--rf-orange-deep) !important;
+}
+.sidebar-bottom > button:last-child {
+  color: #f0f1f3 !important;
+  border-color: rgba(255,255,255,.13) !important;
+  background: rgba(255,255,255,.045) !important;
+  opacity: 1 !important;
+}
+.sidebar-bottom > button:last-child:hover {
+  color: #fff !important;
+  background: rgba(255,104,28,.15) !important;
+  border-color: rgba(255,104,28,.35) !important;
+}
+
+/* ----------------------------------------------------------------------
+   DASHBOARD — compact mission action + remove remaining green emphasis
+   ---------------------------------------------------------------------- */
+.mission-banner .button-dark {
+  min-width: 0 !important;
+  width: auto !important;
+  padding: 10px 14px !important;
+  min-height: 40px !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  border-radius: 9px !important;
+  background: #232327 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+.mission-banner .button-dark:hover {
+  background: #2d2d31 !important;
+  transform: translateY(-1px) !important;
+}
+.resume-health .progress span,
+.resume-health [class*="progress"] > span,
+.ats-score-bar span { background: linear-gradient(90deg,var(--rf-orange),var(--rf-blue)) !important; }
+.resume-health svg,
+.resume-health .check,
+.resume-health li svg { color: var(--rf-blue) !important; }
+
+/* ----------------------------------------------------------------------
+   CAREER FEED — marked actions + readable cards, no green treatment
+   ---------------------------------------------------------------------- */
+.feed-aside-card {
+  background: #171719 !important;
+  color: #fff !important;
+  border: 1px solid #2c2d31 !important;
+}
+.feed-aside-card h3 { color: #fff !important; font-size: 19px !important; }
+.feed-aside-card p { color: #b5b8bf !important; font-size: 13px !important; line-height: 1.5 !important; }
+.feed-aside-card .button,
+.feed-aside-card .button-secondary {
+  width: auto !important;
+  min-width: 0 !important;
+  align-self: flex-start !important;
+  padding: 8px 11px !important;
+  min-height: 36px !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  color: #19191c !important;
+  border-color: #fff !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+}
+.feed-aside-card .button:hover { transform: translateY(-1px) !important; }
+
+.feed-event {
+  background: #fff !important;
+  border-color: #e3e6eb !important;
+  border-left: 3px solid var(--rf-orange) !important;
+}
+.feed-event:nth-of-type(2n) { border-left-color: var(--rf-blue) !important; }
+.feed-event .mini-label { color: #7a818d !important; }
+.feed-event p { color: #65707d !important; }
+.feed-open-inbox {
+  color: var(--rf-orange-deep) !important;
+  border-color: #ffd7bf !important;
+  background: #fff8f3 !important;
+  font-size: 12px !important;
+}
+.opportunity-score b,
+.feed-list [class*="fit"] b { color: var(--rf-orange) !important; }
+
+/* Neutralize status pills that inherited green. */
+.low-risk,
+.risk-low,
+[class*="low-risk"],
+[class*="risk-low"] {
+  color: #4d5e78 !important;
+  background: #edf3ff !important;
+}
+
+/* ----------------------------------------------------------------------
+   SMART APPLY — compact Recently analyzed + visible side information
+   ---------------------------------------------------------------------- */
+.recent-opportunities {
+  margin-top: 18px !important;
+  padding: 16px 18px !important;
+  min-height: 0 !important;
+  background: #fff !important;
+  border: 1px solid var(--rf-line) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 26px rgba(17,19,24,.045) !important;
+}
+.recent-opportunities .section-row {
+  min-height: 36px !important;
+  margin: 0 !important;
+  align-items: center !important;
+}
+.recent-opportunities h2 {
+  margin: 0 !important;
+  font-size: 18px !important;
+  line-height: 1.2 !important;
+  color: var(--rf-ink) !important;
+}
+.recent-opportunities p {
+  margin: 6px 0 0 !important;
+  font-size: 12px !important;
+  color: #77808b !important;
+}
+.recent-opportunities .view-link {
+  font-size: 12px !important;
+  white-space: nowrap !important;
+}
+.workflow-card .active,
+.workflow-step.active,
+.workflow-steps .active,
+.why-card svg,
+.why-card button { color: var(--rf-orange) !important; }
+.workflow-card [style*="green"],
+.why-card [style*="green"] { color: var(--rf-orange) !important; }
+
+/* ----------------------------------------------------------------------
+   CAREER INBOX / ATS / RESUME — visibility and palette cleanup
+   ---------------------------------------------------------------------- */
+.career-inbox-page,
+.ats-page,
+.resume-page,
+.resume-studio-page { color: var(--rf-ink) !important; }
+
+.inbox-tabs button.active,
+.career-inbox-tabs button.active { color: var(--rf-orange-deep) !important; border-color: var(--rf-orange) !important; }
+.inbox-row,
+.career-inbox-row,
+.mail-row { background: #fff !important; }
+.inbox-row .unread-dot,
+.career-inbox-row .unread-dot { background: var(--rf-orange) !important; }
+
+.ats-checker .score,
+.ats-score,
+.ats-score strong { color: var(--rf-orange) !important; }
+.ats-checker .success,
+.ats-checker [class*="success"],
+.ats-page .success { color: var(--rf-blue) !important; }
+
+.resume-studio-page .success,
+.resume-page .success,
+.resume-studio-page [class*="success"] { color: var(--rf-blue) !important; }
+
+/* ----------------------------------------------------------------------
+   SETTINGS — safe styling once missing Sparkles import is fixed
+   ---------------------------------------------------------------------- */
+.settings-panel,
+.integration-row { color: var(--rf-ink) !important; }
+.integration-row svg { color: var(--rf-blue) !important; }
+.settings-panel .button-primary { color: #fff !important; }
+
+/* ----------------------------------------------------------------------
+   General typography/readability across app
+   ---------------------------------------------------------------------- */
+.page-title h1 { font-size: clamp(36px,3.5vw,48px) !important; }
+.page-title p { font-size: 14px !important; color: #68717d !important; }
+.section-row h2 { color: var(--rf-ink) !important; }
+.detail-card h2,
+.detail-card h3,
+.settings-panel h3 { color: var(--rf-ink) !important; }
+.detail-card p,
+.detail-card small,
+.settings-panel p,
+.settings-panel small { color: #66707b !important; }
+
+/* Keep real-time motion, but stop it from reducing readability. */
+.product-panel:hover,
+.feature-card:hover,
+.detail-card:hover { transform: translateY(-3px) !important; }
+
+@media (max-width: 900px) {
+  .product-grid { grid-template-columns: 1fr !important; }
+  .product-panel { min-height: 250px !important; }
+  .feed-aside-card .button { width: 100% !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
+}

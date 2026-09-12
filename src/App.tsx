@@ -1,4 +1,12 @@
 import { useCareerStore } from './store/useCareerStore';
+import './roleclear-refine.css';
+import './roleclear-motion-ui.css';
+import './smart-apply-ui.css';
+import './resume-studio-ui.css';
+import './career-inbox-ui.css';
+import './ats-checker-ui.css';
+import './roleclear-final-fixes.css';
+import './roleclear-final-cleanup.css';
 
 import {
   analyzeJob,
@@ -13,6 +21,7 @@ import {
 import { useEffect, useState, type ReactNode } from 'react';
 
 import {
+  AlertTriangle,
   ArrowLeft,
   ArrowUpRight,
   Bell,
@@ -34,6 +43,7 @@ import {
   LayoutDashboard,
   Link2,
   LockKeyhole,
+  LogOut,
   Mail,
   Menu,
   MoreHorizontal,
@@ -56,6 +66,11 @@ import {
 } from 'lucide-react';
 
 import type { AuthView, View } from './types/navigation';
+
+import CareerFeed from './CareerFeed';
+import Analytics from './Analytics';
+import SettingsView from './SettingsView';
+import { supabase } from './lib/supabase';
 
 /* =========================================================
    NAVIGATION
@@ -84,10 +99,12 @@ const navItems: {
 function Logo({ light = false }: { light?: boolean }) {
   return (
     <div className={`brand ${light ? 'brand-light' : ''}`}>
-      <span className="brand-mark">
-        <span />
-      </span>
-
+      <img
+        className="roleclear-brand-icon"
+        src="/roleclear-icon.svg"
+        alt=""
+        aria-hidden="true"
+      />
       <span>ROLECLEAR</span>
     </div>
   );
@@ -289,7 +306,6 @@ function Landing({
             <div className="floating-card fit-card">
               <div className="fit-ring">
                 <strong>82</strong>
-                <small>%</small>
               </div>
 
               <div>
@@ -622,105 +638,179 @@ function Feature({
 function Auth({
   mode,
   onAuth,
-  onEnter,
 }: {
   mode: 'signin' | 'signup' | 'otp';
   onAuth: (view: AuthView) => void;
-  onEnter: () => void;
 }) {
-  const [otp, setOtp] = useState('');
-  const [sentTo, setSentTo] = useState('aarya@example.com');
-
   const signIn = mode === 'signin';
-  const otpMode = mode === 'otp';
 
-  if (otpMode) {
-    return (
-      <div className="auth-page">
-        <div className="auth-side">
-          <Logo light />
+  const [submitting, setSubmitting] =
+    useState(false);
+  const [authError, setAuthError] =
+    useState('');
+  const [authMessage, setAuthMessage] =
+    useState('');
 
-          <div className="auth-quote">
-            <span>“</span>
+  const handleEmailAuth = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
 
-            <h2>
-              One small step
-              <br />
-              <em>forward.</em>
-            </h2>
+    setSubmitting(true);
+    setAuthError('');
+    setAuthMessage('');
 
-            <p>Verify once. Then build your career system.</p>
+    const form =
+      new FormData(
+        event.currentTarget,
+      );
 
-            <div className="auth-line" />
-          </div>
+    const email =
+      String(
+        form.get('email') ?? '',
+      ).trim();
 
-          <div className="auth-side-footer">
-            PRIVATE <i>→</i> SIMPLE <i>→</i> YOURS
-          </div>
-        </div>
+    const password =
+      String(
+        form.get('password') ?? '',
+      );
 
-        <div className="auth-main">
-          <button className="auth-back" onClick={() => onAuth('signup')}>
-            ← Back
-          </button>
+    try {
+      if (signIn) {
+        const {
+          error,
+        } =
+          await supabase.auth.signInWithPassword(
+            {
+              email,
+              password,
+            },
+          );
 
-          <div className="auth-form-wrap">
-            <div className="auth-mobile-logo">
-              <Logo />
-            </div>
+        if (error) {
+          throw error;
+        }
 
-            <div className="section-kicker">Email verification</div>
+        return;
+      }
 
-            <h1>Check your inbox.</h1>
+      const fullName =
+        String(
+          form.get('name') ?? '',
+        ).trim();
 
-            <p className="auth-intro">
-              We sent a 6-digit code to <b>{sentTo}</b>.
-            </p>
+      const mobile =
+        String(
+          form.get('mobile') ?? '',
+        ).trim();
 
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
+      const {
+        data,
+        error,
+      } =
+        await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo:
+              window.location.origin,
+            data: {
+              full_name:
+                fullName,
+              mobile,
+            },
+          },
+        });
 
-                if (otp.length === 6) {
-                  onEnter();
-                }
-              }}
-            >
-              <label>
-                Verification code
+      if (error) {
+        throw error;
+      }
 
-                <input
-                  className="otp-input"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={otp}
-                  onChange={(event) =>
-                    setOtp(event.target.value.replace(/\D/g, ''))
-                  }
-                  placeholder="000000"
-                  autoFocus
-                />
-              </label>
+      if (!data.session) {
+        setAuthMessage(
+          'Account created. Check your email to confirm your address, then sign in.',
+        );
+      }
+    } catch (error) {
+      setAuthError(
+        error instanceof Error
+          ? error.message
+          : 'Authentication failed.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-              <Button
-                type="submit"
-                className="full-button"
-                disabled={otp.length !== 6}
-              >
-                Verify email
-                <CheckCircle2 size={17} />
-              </Button>
-            </form>
+  const handleGoogleAuth =
+    async () => {
+      setSubmitting(true);
+      setAuthError('');
+      setAuthMessage('');
 
-            <div className="otp-meta">
-              <button onClick={() => setOtp('')}>Resend code</button>
-              <span>Code expires in 10 minutes</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+      try {
+        const {
+          error,
+        } =
+          await supabase.auth.signInWithOAuth(
+            {
+              provider: 'google',
+              options: {
+                redirectTo:
+                  window.location.origin,
+              },
+            },
+          );
+
+        if (error) {
+          throw error;
+        }
+      } catch (error) {
+        setAuthError(
+          error instanceof Error
+            ? error.message
+            : 'Google sign-in failed.',
+        );
+        setSubmitting(false);
+      }
+    };
+
+  const handleForgotPassword =
+    async () => {
+      const email =
+        window.prompt(
+          'Enter the email for your RoleClear account:',
+        );
+
+      if (!email?.trim()) {
+        return;
+      }
+
+      setAuthError('');
+      setAuthMessage('');
+
+      const {
+        error,
+      } =
+        await supabase.auth.resetPasswordForEmail(
+          email.trim(),
+          {
+            redirectTo:
+              window.location.origin,
+          },
+        );
+
+      if (error) {
+        setAuthError(
+          error.message,
+        );
+        return;
+      }
+
+      setAuthMessage(
+        'Password reset email sent.',
+      );
+    };
 
   return (
     <div className="auth-page">
@@ -736,18 +826,28 @@ function Auth({
             <em>forward.</em>
           </h2>
 
-          <p>RoleClear helps you turn every application into momentum.</p>
+          <p>
+            RoleClear helps you turn every
+            application into momentum.
+          </p>
 
           <div className="auth-line" />
         </div>
 
         <div className="auth-side-footer">
-          FIND <i>→</i> UNDERSTAND <i>→</i> MATCH <i>→</i> GROW
+          FIND <i>→</i> UNDERSTAND <i>→</i>{' '}
+          MATCH <i>→</i> GROW
         </div>
       </div>
 
       <div className="auth-main">
-        <button className="auth-back" onClick={() => onAuth('landing')}>
+        <button
+          className="auth-back"
+          onClick={() =>
+            onAuth('landing')
+          }
+          type="button"
+        >
           ← Back to home
         </button>
 
@@ -757,11 +857,15 @@ function Auth({
           </div>
 
           <div className="section-kicker">
-            {signIn ? 'Welcome back' : 'Start your journey'}
+            {signIn
+              ? 'Welcome back'
+              : 'Start your journey'}
           </div>
 
           <h1>
-            {signIn ? 'Good to see you.' : 'Welcome to RoleClear.'}
+            {signIn
+              ? 'Good to see you.'
+              : 'Welcome to RoleClear.'}
           </h1>
 
           <p className="auth-intro">
@@ -770,28 +874,56 @@ function Auth({
               : 'Build a career system that moves with you.'}
           </p>
 
+          {authError && (
+            <div
+              style={{
+                marginBottom: '14px',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                background:
+                  'rgba(220,38,38,.06)',
+                border:
+                  '1px solid rgba(220,38,38,.14)',
+                color: '#b91c1c',
+                fontSize: '.82rem',
+              }}
+            >
+              {authError}
+            </div>
+          )}
+
+          {authMessage && (
+            <div
+              style={{
+                marginBottom: '14px',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                background:
+                  'rgba(22,163,74,.06)',
+                border:
+                  '1px solid rgba(22,163,74,.14)',
+                color: '#15803d',
+                fontSize: '.82rem',
+              }}
+            >
+              {authMessage}
+            </div>
+          )}
+
           <form
-            onSubmit={(event) => {
-              event.preventDefault();
-
-              if (signIn) {
-                onEnter();
-                return;
-              }
-
-              const emailElement =
-                event.currentTarget.elements.namedItem(
-                  'email',
-                ) as HTMLInputElement | null;
-
-              setSentTo(emailElement?.value || 'your email');
-              onAuth('otp');
-            }}
+            onSubmit={
+              handleEmailAuth
+            }
           >
             {!signIn && (
               <label>
                 Full name
-                <input name="name" placeholder="Your name" required />
+                <input
+                  name="name"
+                  placeholder="Your name"
+                  required
+                  autoComplete="name"
+                />
               </label>
             )}
 
@@ -803,6 +935,7 @@ function Auth({
                   inputMode="tel"
                   placeholder="+91 98765 43210"
                   required
+                  autoComplete="tel"
                 />
               </label>
             )}
@@ -814,6 +947,7 @@ function Auth({
                 type="email"
                 placeholder="you@example.com"
                 required
+                autoComplete="email"
               />
             </label>
 
@@ -822,42 +956,96 @@ function Auth({
               <input
                 name="password"
                 type="password"
-                placeholder={signIn ? 'Your password' : 'Create a password'}
+                placeholder={
+                  signIn
+                    ? 'Your password'
+                    : 'Create a password'
+                }
                 required
+                minLength={6}
+                autoComplete={
+                  signIn
+                    ? 'current-password'
+                    : 'new-password'
+                }
               />
             </label>
 
             {signIn && (
               <div className="forgot">
-                <a href="#forgot">Forgot password?</a>
+                <button
+                  type="button"
+                  onClick={
+                    handleForgotPassword
+                  }
+                  style={{
+                    border: 0,
+                    background:
+                      'transparent',
+                    padding: 0,
+                    cursor: 'pointer',
+                    font: 'inherit',
+                    color: 'inherit',
+                  }}
+                >
+                  Forgot password?
+                </button>
               </div>
             )}
 
-            <Button type="submit" className="full-button">
-              {signIn ? 'Sign in' : 'Create your account'}
-              <ArrowUpRight size={17} />
+            <Button
+              type="submit"
+              className="full-button"
+              disabled={submitting}
+            >
+              {submitting
+                ? 'Please wait...'
+                : signIn
+                  ? 'Sign in'
+                  : 'Create your account'}
+              <ArrowUpRight
+                size={17}
+              />
             </Button>
           </form>
 
           <div className="auth-divider">
-            <span>or continue with</span>
+            <span>
+              or continue with
+            </span>
           </div>
 
           <Button
             variant="secondary"
             className="full-button google-button"
-            onClick={onEnter}
+            onClick={
+              handleGoogleAuth
+            }
+            disabled={submitting}
           >
-            <span className="google-g">G</span>
+            <span className="google-g">
+              G
+            </span>
             Continue with Google
           </Button>
 
           <p className="auth-switch">
-            {signIn ? 'New to RoleClear?' : 'Already have an account?'}{' '}
+            {signIn
+              ? 'New to RoleClear?'
+              : 'Already have an account?'}{' '}
             <button
-              onClick={() => onAuth(signIn ? 'signup' : 'signin')}
+              type="button"
+              onClick={() =>
+                onAuth(
+                  signIn
+                    ? 'signup'
+                    : 'signin',
+                )
+              }
             >
-              {signIn ? 'Create an account' : 'Sign in'}
+              {signIn
+                ? 'Create an account'
+                : 'Sign in'}
             </button>
           </p>
         </div>
@@ -877,6 +1065,165 @@ function AppShell({
 }) {
   const [view, setView] = useState<View>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+
+  const [accountName, setAccountName] =
+    useState('RoleClear User');
+  const [accountEmail, setAccountEmail] =
+    useState('');
+
+  const currentResume =
+    useCareerStore(
+      (state) =>
+        state.currentResume,
+    );
+
+  const setCurrentResume =
+    useCareerStore(
+      (state) =>
+        state.setCurrentResume,
+    );
+
+  const [resumeStorageKey, setResumeStorageKey] =
+    useState('');
+  const [resumeStorageReady, setResumeStorageReady] =
+    useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        if (!mounted) return;
+
+        const user = data.user;
+
+        if (!user) return;
+
+        const metadata =
+          user.user_metadata ?? {};
+
+        const name =
+          metadata.full_name ||
+          metadata.name ||
+          user.email?.split('@')[0] ||
+          'RoleClear User';
+
+        setAccountName(
+          String(name),
+        );
+        setAccountEmail(
+          user.email ?? '',
+        );
+
+        const storageKey =
+          `roleclear_current_resume_${user.id}`;
+
+        setResumeStorageKey(
+          storageKey,
+        );
+
+        try {
+          const stored =
+            window.localStorage.getItem(
+              storageKey,
+            );
+
+          if (stored) {
+            const parsed =
+              JSON.parse(stored);
+
+            if (
+              parsed &&
+              typeof parsed ===
+                'object'
+            ) {
+              setCurrentResume(
+                parsed,
+              );
+            }
+          } else {
+            /*
+             * Migration path: if a resume is already in the Zustand store
+             * from the current session, save it under this authenticated
+             * user's key instead of losing it on the first auth-enabled
+             * reload/sign-out.
+             */
+            const existingResume =
+              useCareerStore
+                .getState()
+                .currentResume;
+
+            if (existingResume) {
+              window.localStorage.setItem(
+                storageKey,
+                JSON.stringify(
+                  existingResume,
+                ),
+              );
+            } else {
+              useCareerStore.setState({
+                currentResume: null,
+              });
+            }
+          }
+        } catch {
+          // A malformed local value should not prevent the app from loading.
+        } finally {
+          setResumeStorageReady(
+            true,
+          );
+        }
+      })
+      .catch(() => {
+        // Sidebar can still render if user metadata is unavailable.
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [setCurrentResume]);
+
+  /*
+   * Persist the parsed resume per authenticated Supabase user.
+   * ATS readiness is deterministic from currentResume, so restoring the
+   * resume also restores the same ATS score/report after sign-out/sign-in.
+   */
+  useEffect(() => {
+    if (
+      !resumeStorageReady ||
+      !resumeStorageKey ||
+      !currentResume
+    ) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(
+        resumeStorageKey,
+        JSON.stringify(
+          currentResume,
+        ),
+      );
+    } catch {
+      // Storage failure should not break the resume workflow.
+    }
+  }, [
+    currentResume,
+    resumeStorageKey,
+    resumeStorageReady,
+  ]);
+
+  const initials =
+    accountName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) =>
+        part.charAt(0).toUpperCase(),
+      )
+      .join('') || 'RC';
 
   const careerInboxEvents =
     useCareerStore(
@@ -913,16 +1260,6 @@ function AppShell({
           </button>
         </div>
 
-        <div className="workspace">
-          <span>MY WORKSPACE</span>
-
-          <button className="workspace-button">
-            <span className="workspace-avatar">A</span>
-            <b>Aarya's space</b>
-            <ChevronRight size={15} />
-          </button>
-        </div>
-
         <nav>
           {navItems.map(({ id, label, icon: Icon }) => (
             <button
@@ -953,23 +1290,49 @@ function AppShell({
         </nav>
 
         <div className="sidebar-bottom">
-          <div className="tip-card">
-            <Sparkles size={16} />
-
-            <span>
-              <b>Small steps compound.</b> You're on a 4-day streak.
+          <button
+            className="profile-button"
+            onClick={() => go('settings')}
+            type="button"
+            title="Open account settings"
+          >
+            <span className="profile-avatar">
+              {initials}
             </span>
-          </div>
-
-          <button className="profile-button" onClick={() => go('profile')}>
-            <span className="profile-avatar">AK</span>
 
             <span>
-              <b>Aarya Rai</b>
-              <small>Personal account</small>
+              <b>{accountName}</b>
+              <small>
+                {accountEmail || 'Personal account'}
+              </small>
             </span>
 
             <MoreHorizontal size={18} />
+          </button>
+
+          <button
+            type="button"
+            onClick={onLogout}
+            title="Sign out"
+            style={{
+              width: '100%',
+              marginTop: '8px',
+              minHeight: '38px',
+              border: '1px solid rgba(15, 23, 42, .08)',
+              background: 'transparent',
+              borderRadius: '9px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              color: 'rgba(15, 23, 42, .72)',
+              fontSize: '.8rem',
+              fontWeight: 600,
+            }}
+          >
+            <LogOut size={15} />
+            Sign out
           </button>
         </div>
       </aside>
@@ -984,7 +1347,12 @@ function AppShell({
           </button>
 
           <div className="header-actions header-actions-right">
-            <button className="icon-button" title="Help">
+            <button
+              className="icon-button"
+              title="Help & FAQ"
+              onClick={() => setShowHelp(true)}
+              type="button"
+            >
               <CircleHelp size={19} />
             </button>
 
@@ -992,13 +1360,18 @@ function AppShell({
               className="icon-button notification"
               title="Notifications"
               onClick={() => go('notifications')}
+              type="button"
             >
               <Bell size={19} />
-              <i />
+              {unreadInboxCount > 0 && <i />}
             </button>
 
-            <button className="header-avatar" onClick={() => go('profile')}>
-              AR
+            <button
+              className="header-avatar"
+              onClick={() => go('settings')}
+              title="Account settings"
+            >
+              {initials}
             </button>
           </div>
         </header>
@@ -1020,12 +1393,16 @@ function AppShell({
           {view === 'inbox' && <InboxView setView={go} />}
           {view === 'email-connect' && <EmailConnect setView={go} />}
           {view === 'analytics' && <Analytics />}
-          {view === 'feed' && <Feed setView={go} />}
+          {view === 'feed' && <CareerFeed setView={go} />}
           {view === 'settings' && <SettingsView onLogout={onLogout} />}
           {view === 'notifications' && <Notifications setView={go} />}
           {view === 'profile' && <Profile setView={go} />}
           {view === 'security' && <Security setView={go} />}
         </main>
+
+        {showHelp && (
+          <HelpModal onClose={() => setShowHelp(false)} />
+        )}
 
         <MobileNav view={view} setView={go} />
       </div>
@@ -2249,6 +2626,12 @@ function SmartApply({
   const [statusMessage, setStatusMessage] =
     useState('');
 
+  const [analysisProgress, setAnalysisProgress] =
+    useState(0);
+
+  const [analysisStage, setAnalysisStage] =
+    useState('Ready to analyze');
+
   const setCurrentJob = useCareerStore(
     (state) => state.setCurrentJob,
   );
@@ -2327,17 +2710,42 @@ function SmartApply({
       return;
     }
 
+    let progressTimer: number | undefined;
+
     try {
       setAnalyzing(true);
-
+      setAnalysisProgress(6);
+      setAnalysisStage('Verifying the opportunity');
       setStatusMessage(
         'Reading the job posting…',
       );
+
+      progressTimer = window.setInterval(() => {
+        setAnalysisProgress((value) => {
+          if (value >= 92) {
+            return value;
+          }
+
+          const step =
+            value < 35
+              ? 3
+              : value < 70
+                ? 2
+                : 1;
+
+          return Math.min(92, value + step);
+        });
+      }, 420);
 
       const extracted =
         await extractJobFromUrl(
           input.trim(),
         );
+
+      setAnalysisProgress((value) =>
+        Math.max(value, 34),
+      );
+      setAnalysisStage('Reading role requirements');
 
       const job =
         importedJobFromExtraction(
@@ -2349,6 +2757,43 @@ function SmartApply({
       setStatusMessage(
         'Parsing your resume…',
       );
+      setAnalysisProgress((value) =>
+        Math.max(value, 48),
+      );
+      setAnalysisStage('Parsing your resume');
+
+      // Keep the uploaded resume available for Step 4 preview during
+      // this browser session. Blob URLs are session-only by design.
+      try {
+        const previousUrl =
+          window.sessionStorage.getItem(
+            'roleclear-uploaded-resume-url',
+          );
+
+        if (previousUrl) {
+          URL.revokeObjectURL(previousUrl);
+        }
+
+        const resumeUrl =
+          URL.createObjectURL(resumeFile);
+
+        window.sessionStorage.setItem(
+          'roleclear-uploaded-resume-url',
+          resumeUrl,
+        );
+
+        window.sessionStorage.setItem(
+          'roleclear-uploaded-resume-name',
+          resumeFile.name,
+        );
+
+        window.sessionStorage.setItem(
+          'roleclear-uploaded-resume-type',
+          resumeFile.type || '',
+        );
+      } catch {
+        // Preview caching is optional. Parsing should still proceed.
+      }
 
       const parsedResume =
         await parseResumeFile(
@@ -2362,6 +2807,10 @@ function SmartApply({
       setStatusMessage(
         'Comparing requirements with resume evidence…',
       );
+      setAnalysisProgress((value) =>
+        Math.max(value, 68),
+      );
+      setAnalysisStage('Matching skills and experience');
 
       const result =
         await analyzeJob(
@@ -2372,8 +2821,24 @@ function SmartApply({
 
       setCurrentAnalysis(result);
 
-      setStatusMessage('');
+      setAnalysisProgress(96);
+      setAnalysisStage('Preparing your match summary');
+      setStatusMessage(
+        'Preparing your match summary…',
+      );
 
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 260);
+      });
+
+      setAnalysisProgress(100);
+      setAnalysisStage('Analysis complete');
+
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 220);
+      });
+
+      setStatusMessage('');
       setView('analysis');
     } catch (err) {
       console.error(
@@ -2389,12 +2854,21 @@ function SmartApply({
           : 'We could not analyze this opportunity. Please try again.',
       );
     } finally {
+      if (progressTimer !== undefined) {
+        window.clearInterval(progressTimer);
+      }
+
       setAnalyzing(false);
+
+      window.setTimeout(() => {
+        setAnalysisProgress(0);
+        setAnalysisStage('Ready to analyze');
+      }, 350);
     }
   };
 
   return (
-    <div className="apply-page">
+    <div className="apply-page rc-page-enter">
       <PageTitle
         eyebrow="Smart Apply · Step 01"
         title="What are you applying for?"
@@ -2636,22 +3110,84 @@ function SmartApply({
             </div>
           )}
 
-          {statusMessage && (
+          {analyzing && (
             <div
+              className="smart-apply-progress"
               role="status"
-              style={{
-                marginTop: '14px',
-                padding: '12px 14px',
-                border:
-                  '1px solid #dbeafe',
-                background:
-                  '#eff6ff',
-                color: '#1d4ed8',
-                fontSize: '13px',
-                lineHeight: 1.45,
-              }}
+              aria-live="polite"
             >
-              {statusMessage}
+              <div className="smart-apply-progress-head">
+                <div>
+                  <span className="mini-label">
+                    ROLECLEAR IS WORKING
+                  </span>
+                  <b>{analysisStage}</b>
+                  <small>
+                    {statusMessage ||
+                      'Building your match summary…'}
+                  </small>
+                </div>
+
+                <strong>
+                  {analysisProgress}%
+                </strong>
+              </div>
+
+              <div
+                className="smart-apply-progress-track"
+                aria-label={`Analysis progress ${analysisProgress}%`}
+              >
+                <span
+                  style={{
+                    width: `${analysisProgress}%`,
+                  }}
+                />
+              </div>
+
+              <div className="smart-apply-progress-steps">
+                <span
+                  className={
+                    analysisProgress >= 10
+                      ? 'done'
+                      : 'active'
+                  }
+                >
+                  Verify
+                </span>
+                <span
+                  className={
+                    analysisProgress >= 48
+                      ? 'done'
+                      : analysisProgress >= 34
+                        ? 'active'
+                        : ''
+                  }
+                >
+                  Parse
+                </span>
+                <span
+                  className={
+                    analysisProgress >= 68
+                      ? 'done'
+                      : analysisProgress >= 48
+                        ? 'active'
+                        : ''
+                  }
+                >
+                  Match
+                </span>
+                <span
+                  className={
+                    analysisProgress >= 96
+                      ? 'done'
+                      : analysisProgress >= 68
+                        ? 'active'
+                        : ''
+                  }
+                >
+                  Summarize
+                </span>
+              </div>
             </div>
           )}
 
@@ -2671,7 +3207,7 @@ function SmartApply({
             {analyzing ? (
               <>
                 <span className="button-loader" />
-                Analyzing opportunity…
+                Analyzing · {analysisProgress}%
               </>
             ) : (
               <>
@@ -4858,31 +5394,170 @@ function calculateAtsReadiness(
         dateStrings.length
       : 1;
 
+  /*
+   * Keep this deliberately lightweight. There is no universal ATS date
+   * standard, but a resume should use one visible convention consistently.
+   * We only flag clearly mixed month styles / separators.
+   */
+  const dateStyleKinds = new Set<string>();
+
+  dateStrings.forEach((value) => {
+    const clean = value
+      .trim()
+      .toLowerCase();
+
+    if (
+      clean === 'present' ||
+      clean === 'current'
+    ) {
+      return;
+    }
+
+    if (
+      /^(jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\b/.test(
+        clean,
+      )
+    ) {
+      dateStyleKinds.add(
+        'abbreviated-month',
+      );
+      return;
+    }
+
+    if (
+      /^(january|february|march|april|may|june|july|august|september|october|november|december)\b/.test(
+        clean,
+      )
+    ) {
+      dateStyleKinds.add(
+        'full-month',
+      );
+      return;
+    }
+
+    if (
+      /^\d{1,2}[/. -]\d{4}$/.test(
+        clean,
+      )
+    ) {
+      dateStyleKinds.add(
+        'numeric-month',
+      );
+      return;
+    }
+
+    if (/^\d{4}$/.test(clean)) {
+      dateStyleKinds.add(
+        'year-only',
+      );
+    }
+  });
+
+  const rawDateRanges =
+    rawText.match(
+      /(?:[A-Za-z]{3,9}\s+)?(?:19|20)\d{2}\s*[-–—]\s*(?:Present|Current|(?:[A-Za-z]{3,9}\s+)?(?:19|20)\d{2})/gi,
+    ) ?? [];
+
+  const separatorStyles =
+    new Set(
+      rawDateRanges.map(
+        (range) => {
+          const separator =
+            range.match(
+              /\s*([-–—])\s*/,
+            );
+
+          if (!separator) {
+            return 'unknown';
+          }
+
+          const dash =
+            separator[1];
+
+          const hasLeftSpace =
+            /\s[-–—]/.test(
+              separator[0],
+            );
+
+          const hasRightSpace =
+            /[-–—]\s/.test(
+              separator[0],
+            );
+
+          return `${dash}:${hasLeftSpace ? 1 : 0}:${hasRightSpace ? 1 : 0}`;
+        },
+      ),
+    );
+
+  const dateStyleConsistent =
+    dateStyleKinds.size <= 1 &&
+    separatorStyles.size <= 1;
+
+  /*
+   * Detect only obvious text artifacts: a completed sentence followed by one
+   * unexplained trailing capitalized token, e.g. "... prototype. Developer".
+   * This is intentionally narrow to avoid pretending to inspect visual layout.
+   */
+  const suspiciousTextArtifacts = [
+    ...experienceBullets,
+    ...projectBullets,
+  ].filter((bullet) =>
+    /[.!?]\s+[A-Z][A-Za-z+#.-]{2,20}\s*$/.test(
+      bullet.trim(),
+    ),
+  );
+
+  let formattingScore =
+    dateFormatRatio >= 0.9
+      ? 3
+      : dateFormatRatio >= 0.7
+        ? 2
+        : 0;
+
+  if (
+    !dateStyleConsistent &&
+    formattingScore > 0
+  ) {
+    formattingScore -= 1;
+  }
+
+  if (
+    suspiciousTextArtifacts.length > 0 &&
+    formattingScore > 0
+  ) {
+    formattingScore -= 1;
+  }
+
   addCheck({
     id: 'date-format-consistency',
     category:
       'Consistency & readability',
-    label: 'Consistent date formatting',
-    score:
-      dateFormatRatio >= 0.9
-        ? 3
-        : dateFormatRatio >= 0.7
-          ? 2
-          : 0,
+    label: 'Date & text consistency',
+    score: formattingScore,
     max: 3,
     reason:
-      dateStrings.length > 0
-        ? `${monthYearFormatted}/${dateStrings.length} parsed dates follow a simple Month Year / Year / Present pattern.`
-        : 'No dates were available to assess.',
+      dateStrings.length === 0
+        ? 'No dates were available to assess.'
+        : [
+            `${monthYearFormatted}/${dateStrings.length} parsed dates are machine-readable.`,
+            dateStyleConsistent
+              ? 'Date styling appears consistent.'
+              : 'Mixed date styles or date-range separators were detected.',
+            suspiciousTextArtifacts.length > 0
+              ? `${suspiciousTextArtifacts.length} possible stray text artifact${
+                  suspiciousTextArtifacts.length === 1
+                    ? ''
+                    : 's'
+                } detected.`
+              : 'No obvious stray text artifact was detected.',
+          ].join(' '),
     solution:
-      dateFormatRatio >= 0.9
+      formattingScore === 3
         ? 'No change needed.'
-        : 'Use one consistent date style throughout the resume, such as “May 2026 – August 2026”, “05/2026 – 08/2026”, or a corresponding Present format.',
+        : 'Use one date convention throughout the resume and remove any obvious stray words or pasted-text artifacts.',
     evidence:
       dateStrings.length > 0
-        ? `${Math.round(
-            dateFormatRatio * 100,
-          )}% consistent`
+        ? `${dateStyleKinds.size || 1} date style(s) · ${separatorStyles.size || 1} separator style(s) · ${suspiciousTextArtifacts.length} possible artifact(s)`
         : 'No dates',
   });
 
@@ -5079,6 +5754,47 @@ function calculateAtsReadiness(
     );
   }
 
+  const quantifiedProjectSignals =
+    projectBullets.filter(
+      (bullet) =>
+        quantifiedRegex.test(
+          bullet,
+        ),
+    ).length;
+
+  const quantifiedAchievementSignals =
+    (resume.achievements ?? []).filter(
+      (item) => {
+        const value =
+          typeof item === 'string'
+            ? item
+            : JSON.stringify(
+                item,
+              );
+
+        return quantifiedRegex.test(
+          value,
+        );
+      },
+    ).length;
+
+  const quantifiedOutsideExperience =
+    quantifiedProjectSignals +
+    quantifiedAchievementSignals;
+
+  if (
+    quantifiedOutsideExperience > 0
+  ) {
+    optionalSignals.push(
+      `${quantifiedOutsideExperience} quantified project/achievement signal${
+        quantifiedOutsideExperience ===
+        1
+          ? ''
+          : 's'
+      } detected`,
+    );
+  }
+
   const researchCount =
     (resume.research?.length ?? 0) +
     (resume.publications?.length ?? 0);
@@ -5174,13 +5890,6 @@ type StudioResumeVersion = {
   source: 'manual' | 'smart-apply';
   fitScore?: number;
   profileSnapshot: MasterResumeProfile;
-
-  // Live Smart Apply / backend generation metadata.
-  backendVersionId?: string;
-  claimValidationPassed?: boolean;
-  jobUrl?: string;
-  generatedDocx?: boolean;
-  tailoredResume?: Record<string, unknown>;
 };
 
 const MASTER_PROFILE_STORAGE_KEY =
@@ -6593,9 +7302,9 @@ function Resumes({
                     fontSize: '0.86rem',
                   }}
                 >
-                  Smart Apply generated versions are immutable snapshots.
-                  Each version keeps its backend ID, fit score and source
-                  profile so you know exactly what you used.
+                  These are saved targeting records. JD refinement and
+                  the editable resume document are the next processing
+                  stage.
                 </p>
               </div>
 
@@ -6639,21 +7348,6 @@ function Resumes({
                             version.createdAt,
                           ).toLocaleDateString()}
                         </small>
-
-                        {version.backendVersionId && (
-                          <small
-                            style={{
-                              display: 'block',
-                              marginTop: '5px',
-                              opacity: 0.7,
-                            }}
-                          >
-                            Version {version.backendVersionId.slice(0, 8)}
-                            {version.claimValidationPassed
-                              ? ' · claim validation passed'
-                              : ''}
-                          </small>
-                        )}
 
                         {profileChanged && (
                           <small
@@ -6811,7 +7505,7 @@ async function startGmailOAuth(): Promise<Window> {
 }
 
 async function waitForGmailConnection(
-  popup: Window,
+  _popup: Window,
   timeoutMs = 120000,
 ): Promise<GmailConnectionStatus> {
   const startedAt = Date.now();
@@ -6834,23 +7528,29 @@ async function waitForGmailConnection(
       // Backend may briefly be unavailable during OAuth callback.
     }
 
-    if (popup.closed) {
-      const finalStatus =
-        await fetchGmailStatus();
-
-      if (finalStatus.connected) {
-        return finalStatus;
-      }
-
-      throw new Error(
-        'Gmail sign-in window closed before the connection completed.',
-      );
-    }
+    /*
+     * Do not read popup.closed here. Google uses Cross-Origin-Opener-Policy,
+     * which makes that access noisy/unreliable in Chrome. Poll the backend
+     * connection status instead.
+     */
   }
 
   throw new Error(
-    'Gmail connection timed out. Please try again.',
+    'Gmail connection timed out. Complete Google consent, then try Connect Gmail again.',
   );
+}
+
+class GmailSyncError extends Error {
+  status: number;
+
+  constructor(
+    message: string,
+    status: number,
+  ) {
+    super(message);
+    this.name = 'GmailSyncError';
+    this.status = status;
+  }
 }
 
 async function syncGmailMessages(): Promise<GmailSyncedMessage[]> {
@@ -6861,12 +7561,24 @@ async function syncGmailMessages(): Promise<GmailSyncedMessage[]> {
     },
   );
 
-  const data = await response.json();
+  let data: {
+    detail?: string;
+    messages?: GmailSyncedMessage[];
+  } = {};
+
+  try {
+    data = await response.json();
+  } catch {
+    // Keep a clean fallback when the backend returns a non-JSON error.
+  }
 
   if (!response.ok) {
-    throw new Error(
+    throw new GmailSyncError(
       data?.detail ??
-        'Could not sync Gmail.',
+        (response.status === 401
+          ? 'Gmail authorization expired. Reconnect Gmail.'
+          : 'Could not sync Gmail.'),
+      response.status,
     );
   }
 
@@ -7343,11 +8055,40 @@ function InboxView({
 
       await refreshGmailStatus();
     } catch (error) {
-      setGmailMessage(
-        error instanceof Error
-          ? error.message
-          : 'Could not sync Gmail.',
-      );
+      if (
+        error instanceof GmailSyncError &&
+        error.status === 401
+      ) {
+        /*
+         * The backend token is no longer usable. Do not keep showing the
+         * mailbox as connected: that creates the exact "Connected but 0 mail"
+         * state we want to avoid.
+         */
+        setGmailStatus({
+          connected: false,
+          email: null,
+        });
+
+        try {
+          await disconnectGmail();
+        } catch {
+          // The backend may already consider the token invalid/disconnected.
+        }
+
+        setGmailMessage(
+          'Gmail authorization expired or was revoked. Reconnect Gmail, approve Gmail read access, then sync again.',
+        );
+      } else {
+        setGmailMessage(
+          error instanceof Error
+            ? error.message
+            : 'Could not sync Gmail.',
+        );
+
+        // Refresh the status even for non-401 failures so the UI never keeps
+        // a stale connection badge.
+        await refreshGmailStatus();
+      }
     } finally {
       setGmailBusy(false);
     }
@@ -7399,11 +8140,39 @@ function InboxView({
     setShowImporter(false);
   };
 
-  const filteredEvents =
-    careerInboxEvents.filter(
+  const eventTimestamp = (
+    value?: string | null,
+  ) => {
+    if (!value) {
+      return 0;
+    }
+
+    const parsed =
+      Date.parse(value);
+
+    return Number.isNaN(parsed)
+      ? 0
+      : parsed;
+  };
+
+  // Career Inbox is always newest-first, independent of the order in which
+  // Gmail sync/import inserted messages into Zustand/localStorage.
+  const filteredEvents = [
+    ...careerInboxEvents,
+  ]
+    .filter(
       (event) =>
         activeTab === 'All' ||
         event.type === activeTab,
+    )
+    .sort(
+      (a, b) =>
+        eventTimestamp(
+          b.receivedAt,
+        ) -
+        eventTimestamp(
+          a.receivedAt,
+        ),
     );
 
   const countFor = (
@@ -7988,389 +8757,9 @@ function InboxView({
 }
 
 /* =========================================================
-   ANALYTICS
+   CAREER FEED / ANALYTICS / SETTINGS
+   Moved to separate component files.
 ========================================================= */
-
-function Analytics() {
-  return (
-    <>
-      <PageTitle
-        eyebrow="Patterns, not vanity metrics"
-        title="Career analytics"
-        subtitle="See what your application history is teaching you."
-        action={
-          <Button variant="secondary">
-            This month
-            <ChevronRight size={15} />
-          </Button>
-        }
-      />
-
-      <div className="analytics-stats">
-        <Stat
-          label="Response rate"
-          value="33%"
-          trend="+8% vs last month"
-          icon={<TrendingUp />}
-        />
-
-        <Stat
-          label="Interview conversion"
-          value="17%"
-          trend="Based on 12 applications"
-          icon={<Target />}
-        />
-
-        <Stat
-          label="Best fit score"
-          value="91%"
-          trend="Software engineering"
-          icon={<Sparkles />}
-        />
-      </div>
-
-      <div className="chart-grid">
-        <div className="chart-card">
-          <div className="chart-head">
-            <div>
-              <span className="mini-label">APPLICATIONS OVER TIME</span>
-              <h3>12 applications</h3>
-            </div>
-
-            <TrendingUp size={19} />
-          </div>
-
-          <div className="chart">
-            <div className="chart-gridlines">
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-
-            <svg viewBox="0 0 600 170" preserveAspectRatio="none">
-              <path d="M0 145 C60 142, 64 122, 112 128 S165 80, 216 105 S265 112, 320 82 S365 91, 418 52 S480 75, 530 28 S570 40, 600 15" />
-            </svg>
-
-            <div className="chart-labels">
-              <span>May 1</span>
-              <span>May 15</span>
-              <span>Jun 1</span>
-              <span>Jun 16</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="chart-card insight-chart">
-          <div className="chart-head">
-            <div>
-              <span className="mini-label">STRONGEST PATTERN</span>
-              <h3>Backend roles perform best</h3>
-            </div>
-
-            <Sparkles size={19} />
-          </div>
-
-          <div className="role-bars">
-            <RoleBar label="Backend" value="75%" width="75%" />
-            <RoleBar label="Full stack" value="48%" width="48%" />
-            <RoleBar label="Frontend" value="33%" width="33%" />
-          </div>
-
-          <p className="chart-footnote">
-            Observed from your last 12 applications.
-          </p>
-        </div>
-      </div>
-
-      <div className="observed-card">
-        <div className="observed-icon">
-          <Sparkles size={18} />
-        </div>
-
-        <div>
-          <span className="mini-label">AN INSIGHT FOR YOU</span>
-
-          <h3>Tailored resumes are getting more replies.</h3>
-
-          <p>
-            3 of 4 responses came from applications using a job-specific
-            version. Keep tailoring truthfully.
-          </p>
-        </div>
-
-        <ArrowUpRight size={18} />
-      </div>
-    </>
-  );
-}
-
-function RoleBar({
-  label,
-  value,
-  width,
-}: {
-  label: string;
-  value: string;
-  width: string;
-}) {
-  return (
-    <div className="role-bar">
-      <div>
-        <span>{label}</span>
-        <b>{value}</b>
-      </div>
-
-      <i>
-        <em style={{ width }} />
-      </i>
-    </div>
-  );
-}
-
-/* =========================================================
-   CAREER FEED
-========================================================= */
-
-function Feed({
-  setView,
-}: {
-  setView: (view: View) => void;
-}) {
-  return (
-    <>
-      <PageTitle
-        eyebrow="Your focused career feed"
-        title="Career Feed"
-        subtitle="A calm stream of opportunities, updates, and useful signals."
-      />
-
-      <div className="feed-layout">
-        <div className="feed-list">
-          <div className="feed-filter">
-            <Button variant="secondary">
-              All updates
-              <ChevronRight size={15} />
-            </Button>
-
-            <span>
-              Showing your activity and imported opportunities
-            </span>
-          </div>
-
-          <OpportunityFeedCard
-            company="Stripe"
-            role="Software Engineer Intern"
-            source="LinkedIn · Imported opportunity"
-            fit="91"
-            risk="Low risk"
-            color="orange"
-            onClick={() => setView('apply')}
-          />
-
-          <OpportunityFeedCard
-            company="Razorpay"
-            role="Frontend Engineer"
-            source="Razorpay careers · Imported opportunity"
-            fit="84"
-            risk="Medium risk"
-            color="blue"
-            onClick={() => setView('apply')}
-          />
-
-          <div className="feed-event">
-            <span>
-              <Sparkles size={16} />
-            </span>
-
-            <div>
-              <small>RESUME INSIGHT · JUN 13</small>
-
-              <h3>Docker appears frequently in your target roles.</h3>
-
-              <p>
-                Consider making your experience with Docker more visible in your
-                next tailored version.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="feed-aside">
-          <div className="feed-aside-card">
-            <span className="mini-label">KEEP IT MOVING</span>
-
-            <h3>Your next best action</h3>
-
-            <p>Complete the follow-up on your Stripe application.</p>
-
-            <Button variant="secondary">
-              Take action
-              <ArrowUpRight size={15} />
-            </Button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-function OpportunityFeedCard({
-  company,
-  role,
-  source,
-  fit,
-  risk,
-  color,
-  onClick,
-}: {
-  company: string;
-  role: string;
-  source: string;
-  fit: string;
-  risk: string;
-  color: string;
-  onClick: () => void;
-}) {
-  return (
-    <div className="opportunity-card">
-      <span className={`company-logo ${color}`}>{company[0]}</span>
-
-      <div className="opportunity-info">
-        <div>
-          <b>{role}</b>
-          <span>{company}</span>
-        </div>
-
-        <p>{source}</p>
-      </div>
-
-      <div className="opportunity-score">
-        <span>RESUME FIT</span>
-        <b>{fit}%</b>
-      </div>
-
-      <div
-        className={`risk-badge ${
-          risk === 'Medium risk' ? 'medium' : ''
-        }`}
-      >
-        {risk}
-      </div>
-
-      <button onClick={onClick}>
-        Analyze
-        <ArrowUpRight size={15} />
-      </button>
-    </div>
-  );
-}
-
-/* =========================================================
-   SETTINGS
-========================================================= */
-
-function SettingsView({
-  onLogout,
-}: {
-  onLogout: () => void;
-}) {
-  return (
-    <>
-      <PageTitle
-        eyebrow="Your space, your rules"
-        title="Settings"
-        subtitle="Manage your preferences, connections, and data."
-      />
-
-      <div className="settings-layout">
-        <div className="settings-nav">
-          <button className="active">Account</button>
-          <button>Career preferences</button>
-          <button>Integrations</button>
-          <button>Notifications</button>
-          <button>Privacy & security</button>
-        </div>
-
-        <div className="settings-panels">
-          <div className="settings-panel">
-            <div>
-              <span className="mini-label">ACCOUNT</span>
-              <h3>Personal information</h3>
-              <p>Keep your basics up to date.</p>
-            </div>
-
-            <label>
-              Full name
-              <input value="Aarya Rai" readOnly />
-            </label>
-
-            <label>
-              Email
-              <input value="aarya@example.com" readOnly />
-            </label>
-
-            <label>
-              Mobile number
-              <input value="+91 98765 43210" readOnly />
-            </label>
-
-            <Button variant="secondary">Edit details</Button>
-          </div>
-
-          <div className="settings-panel">
-            <div>
-              <span className="mini-label">INTEGRATIONS</span>
-              <h3>Connected accounts</h3>
-
-              <p>
-                Connections are always optional and can be removed.
-              </p>
-            </div>
-
-            <div className="integration-row">
-              <span className="integration-logo">G</span>
-
-              <div>
-                <b>Google</b>
-                <small>Not connected</small>
-              </div>
-
-              <Button variant="secondary">Connect</Button>
-            </div>
-
-            <div className="integration-row">
-              <span className="integration-logo outlook">O</span>
-
-              <div>
-                <b>Outlook</b>
-                <small>Not connected</small>
-              </div>
-
-              <Button variant="secondary">Connect</Button>
-            </div>
-          </div>
-
-          <div className="settings-panel danger-panel">
-            <div>
-              <span className="mini-label">ACCOUNT ACCESS</span>
-
-              <h3>Sign out of RoleClear</h3>
-
-              <p>
-                You'll need to sign in again to access your career space.
-              </p>
-            </div>
-
-            <Button variant="secondary" onClick={onLogout}>
-              Sign out
-            </Button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
 
 /* =========================================================
    JOB ANALYSIS
@@ -8399,11 +8788,9 @@ function JobAnalysis({
 
   if (!currentJob || !currentAnalysis) {
     return (
-      <div className="detail-page">
+      <div className="detail-page rc-page-enter">
         <BackLink
-          onClick={() =>
-            setView('apply')
-          }
+          onClick={() => setView('apply')}
           label="Back to Smart Apply"
         />
 
@@ -8411,20 +8798,11 @@ function JobAnalysis({
           <span className="mini-label">
             NO ANALYSIS AVAILABLE
           </span>
-
-          <h2>
-            Analyze an opportunity first.
-          </h2>
-
+          <h2>Analyze an opportunity first.</h2>
           <p>
             Smart Apply needs a verified job and parsed resume before it can show the analysis.
           </p>
-
-          <Button
-            onClick={() =>
-              setView('apply')
-            }
-          >
+          <Button onClick={() => setView('apply')}>
             Go to Smart Apply
             <ArrowUpRight size={16} />
           </Button>
@@ -8433,31 +8811,27 @@ function JobAnalysis({
     );
   }
 
-  const isSaved =
-    savedJobs.some(
-      (job) =>
-        job.id === currentJob.id,
-    );
+  const isSaved = savedJobs.some(
+    (job) => job.id === currentJob.id,
+  );
 
   const ghostRiskLabel =
-    currentAnalysis.ghostRisk ===
-    'low'
+    currentAnalysis.ghostRisk === 'low'
       ? 'LOW'
-      : currentAnalysis.ghostRisk ===
-          'medium'
+      : currentAnalysis.ghostRisk === 'medium'
         ? 'MEDIUM'
         : 'HIGH';
 
   const fitCaption =
     currentAnalysis.resumeFit >= 80
       ? 'Strong match'
-      : currentAnalysis.resumeFit >=
-          60
-        ? 'Moderate match'
-        : currentAnalysis.resumeFit >=
-            40
-          ? 'Partial match'
-          : 'Low match';
+      : currentAnalysis.resumeFit >= 65
+        ? 'Good match'
+        : currentAnalysis.resumeFit >= 50
+          ? 'Moderate match'
+          : currentAnalysis.resumeFit >= 35
+            ? 'Partial match'
+            : 'Weak match';
 
   const handleSaveJob = () => {
     if (!isSaved) {
@@ -8477,12 +8851,50 @@ function JobAnalysis({
     );
   };
 
+  const strongestMatches =
+    currentAnalysis.requirementMatches
+      .filter(
+        (item) =>
+          item.level === 'required' &&
+          item.matched,
+      )
+      .slice()
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+
+  const topGaps =
+    currentAnalysis.missingRequired.slice(0, 3);
+
+  const evidenceItems = [
+    ...currentAnalysis.experienceMatches
+      .filter((item) => item.score > 0)
+      .map((item) => ({
+        key: `exp-${item.index}`,
+        icon: 'experience' as const,
+        title: item.title ?? 'Experience',
+        subtitle: item.organization ?? '',
+        score: item.score,
+        terms: item.matchedTerms,
+      })),
+    ...currentAnalysis.workSampleMatches
+      .filter((item) => item.score > 0)
+      .map((item) => ({
+        key: `work-${item.index}`,
+        icon: 'project' as const,
+        title:
+          item.name ?? 'Project / work sample',
+        subtitle: '',
+        score: item.score,
+        terms: item.matchedTerms,
+      })),
+  ]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+
   return (
-    <div className="detail-page">
+    <div className="detail-page rc-page-enter compact-analysis-page">
       <BackLink
-        onClick={() =>
-          setView('apply')
-        }
+        onClick={() => setView('apply')}
         label="Back to Smart Apply"
       />
 
@@ -8501,369 +8913,312 @@ function JobAnalysis({
         ]
           .filter(Boolean)
           .join(' · ')}
-        action={
-          currentJob.url ? (
-            <Button
-              variant="secondary"
-              onClick={
-                handleOpenOriginal
-              }
-            >
-              View original
-              <ExternalLink
-                size={15}
-              />
-            </Button>
-          ) : undefined
-        }
       />
 
-      <div className="analysis-hero">
-        <div>
+      <section className="compact-decision-card">
+        <div className="compact-decision-copy">
           <span className="mini-label">
-            VERDICT
+            YOUR DECISION SNAPSHOT
           </span>
 
-          <h2>
-            {currentAnalysis.verdict}.
-          </h2>
+          <h2>{currentAnalysis.verdict}.</h2>
 
           <p>
-            {currentAnalysis.explanation}
+            {currentAnalysis.matchedRequired.length} of{' '}
+            {currentAnalysis.requiredRequirements.length}{' '}
+            required requirements show supporting evidence.
+            {currentAnalysis.missingRequired.length > 0
+              ? ` Focus on ${currentAnalysis.missingRequired.length} gap${
+                  currentAnalysis.missingRequired.length === 1
+                    ? ''
+                    : 's'
+                } before applying.`
+              : ' No major required gaps were detected.'}
           </p>
         </div>
 
-        <div className="score-duo">
-          <ScoreBlock
-            label="RESUME FIT"
-            value={`${currentAnalysis.resumeFit}%`}
-            caption={fitCaption}
-          />
+        <div className="compact-score-row">
+          <div className="compact-score primary">
+            <span>Resume Fit</span>
+            <strong>
+              {currentAnalysis.resumeFit}%
+            </strong>
+            <small>{fitCaption}</small>
+          </div>
 
-          <ScoreBlock
-            label="GHOST RISK"
-            value={ghostRiskLabel}
-            caption="Posting signal assessment"
-          />
-        </div>
-      </div>
+          <div className="compact-score">
+            <span>Ghost Risk</span>
+            <strong>{ghostRiskLabel}</strong>
+            <small>Posting signals</small>
+          </div>
 
-      <div
-        className="analysis-grid"
-        style={{
-          marginBottom: '20px',
-        }}
-      >
-        <div className="detail-card">
-          <span className="mini-label">
-            MATCH BREAKDOWN
-          </span>
-
-          <h3>
-            Where the score comes from
-          </h3>
-
-          <div
-            style={{
-              display: 'grid',
-              gap: '10px',
-              marginTop: '16px',
-            }}
-          >
-            <DetailPair
-              label="Capabilities"
-              value={`${currentAnalysis.canonicalBreakdown.capabilities}%`}
-            />
-
-            <DetailPair
-              label="Experience"
-              value={`${currentAnalysis.canonicalBreakdown.experience}%`}
-            />
-
-            <DetailPair
-              label="Responsibilities"
-              value={`${currentAnalysis.canonicalBreakdown.responsibilities}%`}
-            />
+          <div className="compact-score">
+            <span>Eligibility</span>
+            <strong>
+              {Math.round(
+                currentAnalysis
+                  .canonicalBreakdown
+                  .eligibility,
+              )}
+              %
+            </strong>
+            <small>Required gates</small>
           </div>
         </div>
+      </section>
 
-        <div className="detail-card">
-          <span className="mini-label">
-            POSTING SIGNALS
-          </span>
+      <div className="compact-insight-grid">
+        <section className="compact-insight-card">
+          <div className="compact-card-heading">
+            <div>
+              <span className="mini-label">
+                STRONGEST FIT
+              </span>
+              <h3>What already works</h3>
+            </div>
+            <CheckCircle2 size={20} />
+          </div>
 
-          <h3>
-            Why ghost risk is {ghostRiskLabel.toLowerCase()}
-          </h3>
-
-          {currentAnalysis
-            .ghostRiskReasons.length >
-          0 ? (
-            <ul className="gap-list">
-              {currentAnalysis
-                .ghostRiskReasons
-                .map((reason) => (
-                  <li key={reason}>
-                    <span>
-                      {reason}
-                    </span>
-                  </li>
-                ))}
-            </ul>
-          ) : (
-            <p>
-              No major posting-quality warning signals were detected by the current rule set.
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="analysis-grid">
-        <div className="detail-card">
-          <span className="mini-label">
-            REQUIRED REQUIREMENTS
-          </span>
-
-          <h3>
-            What the role requires
-          </h3>
-
-          {currentAnalysis
-            .requiredRequirements.length >
-          0 ? (
-            <div className="chip-list">
-              {currentAnalysis.requiredRequirements.map(
-                (skill) => {
-                  const missing =
-                    currentAnalysis.missingRequired.includes(
-                      skill,
-                    );
-
-                  return (
-                    <span
-                      key={skill}
-                      className={
-                        missing
-                          ? 'gap'
-                          : ''
-                      }
-                    >
-                      {skill}
-                    </span>
-                  );
-                },
+          {strongestMatches.length > 0 ? (
+            <div className="compact-point-list">
+              {strongestMatches.map(
+                (item) => (
+                  <div
+                    className="compact-point positive"
+                    key={`${item.level}-${item.category}-${item.requirement}`}
+                  >
+                    <Check size={15} />
+                    <div>
+                      <b>{item.requirement}</b>
+                      <span>
+                        {Math.round(item.score)}% evidence match
+                      </span>
+                    </div>
+                  </div>
+                ),
               )}
             </div>
           ) : (
-            <p>
-              No explicit required requirements were extracted from the posting.
+            <p className="compact-empty">
+              No strong required matches were detected yet.
             </p>
           )}
+        </section>
 
-          <div className="analysis-row">
-            <Check size={15} />
+        <section className="compact-insight-card">
+          <div className="compact-card-heading">
+            <div>
+              <span className="mini-label">
+                WHAT TO FIX
+              </span>
+              <h3>Highest-priority gaps</h3>
+            </div>
+            <AlertTriangle size={20} />
+          </div>
+
+          {topGaps.length > 0 ? (
+            <div className="compact-point-list">
+              {topGaps.map(
+                (requirement) => (
+                  <div
+                    className="compact-point gap"
+                    key={requirement}
+                  >
+                    <span className="compact-dot" />
+                    <div>
+                      <b>{requirement}</b>
+                      <span>
+                        Required · weak or missing evidence
+                      </span>
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
+          ) : (
+            <div className="compact-point positive">
+              <Check size={15} />
+              <div>
+                <b>No major required gaps</b>
+                <span>
+                  Your resume covers the extracted minimum requirements.
+                </span>
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+
+      <section className="compact-evidence-strip">
+        <div className="compact-card-heading">
+          <div>
+            <span className="mini-label">
+              BEST SUPPORTING EVIDENCE
+            </span>
+            <h3>Top resume evidence</h3>
+          </div>
+
+          <button
+            className="compact-text-button"
+            onClick={() =>
+              setView('resume-match')
+            }
+          >
+            Full match
+            <ArrowUpRight size={14} />
+          </button>
+        </div>
+
+        <div className="compact-evidence-grid">
+          {evidenceItems.map(
+            (item) => (
+              <div
+                className="compact-evidence-item"
+                key={item.key}
+              >
+                {item.icon === 'experience' ? (
+                  <BriefcaseBusiness size={16} />
+                ) : (
+                  <Sparkles size={16} />
+                )}
+
+                <div>
+                  <b>{item.title}</b>
+                  {item.subtitle && (
+                    <span>{item.subtitle}</span>
+                  )}
+                  <small>
+                    {Math.round(item.score)}% relevance
+                    {item.terms.length > 0
+                      ? ` · ${item.terms
+                          .slice(0, 2)
+                          .join(', ')}`
+                      : ''}
+                  </small>
+                </div>
+              </div>
+            ),
+          )}
+        </div>
+      </section>
+
+      <details className="compact-details">
+        <summary>
+          <div>
+            <span className="mini-label">
+              WHY THIS SCORE?
+            </span>
+            <b>
+              View breakdown and extracted requirements
+            </b>
+          </div>
+          <span className="details-chevron">⌄</span>
+        </summary>
+
+        <div className="compact-details-body">
+          <div className="compact-breakdown">
+            <DetailPair
+              label="Capabilities"
+              value={`${Math.round(
+                currentAnalysis
+                  .canonicalBreakdown
+                  .capabilities,
+              )}%`}
+            />
+            <DetailPair
+              label="Experience"
+              value={`${Math.round(
+                currentAnalysis
+                  .canonicalBreakdown
+                  .experience,
+              )}%`}
+            />
+            <DetailPair
+              label="Responsibilities"
+              value={`${Math.round(
+                currentAnalysis
+                  .canonicalBreakdown
+                  .responsibilities,
+              )}%`}
+            />
+            <DetailPair
+              label="Eligibility"
+              value={`${Math.round(
+                currentAnalysis
+                  .canonicalBreakdown
+                  .eligibility,
+              )}%`}
+            />
+          </div>
+
+          <div className="compact-details-columns">
+            <div>
+              <h4>Required requirements</h4>
+              <ul>
+                {currentAnalysis.requiredRequirements.map(
+                  (requirement) => (
+                    <li key={requirement}>
+                      {requirement}
+                    </li>
+                  ),
+                )}
+              </ul>
+            </div>
 
             <div>
-              <b>
-                {
-                  currentAnalysis
-                    .matchedRequired
-                    .length
-                }{' '}
-                matched requirements
-              </b>
-
-              <p>
-                Each match is supported by evidence found in the parsed resume.
-              </p>
+              <h4>Preferred qualifications</h4>
+              {currentAnalysis.preferredRequirements.length >
+              0 ? (
+                <ul>
+                  {currentAnalysis.preferredRequirements.map(
+                    (requirement) => (
+                      <li key={requirement}>
+                        {requirement}
+                      </li>
+                    ),
+                  )}
+                </ul>
+              ) : (
+                <p>
+                  No separate preferred qualifications were detected.
+                </p>
+              )}
             </div>
           </div>
-        </div>
-
-        <div className="detail-card">
-          <span className="mini-label">
-            PREFERRED QUALIFICATIONS
-          </span>
-
-          <h3>
-            Helpful, but not mandatory
-          </h3>
-
-          {currentAnalysis
-            .preferredRequirements.length >
-          0 ? (
-            <div className="chip-list">
-              {currentAnalysis
-                .preferredRequirements
-                .map((skill) => (
-                  <span
-                    key={skill}
-                  >
-                    {skill}
-                  </span>
-                ))}
-            </div>
-          ) : (
-            <p>
-              No separate preferred qualifications were detected.
-            </p>
-          )}
-        </div>
-
-        <div className="detail-card">
-          <span className="mini-label">
-            GAPS
-          </span>
-
-          <h3>
-            Required evidence not found
-          </h3>
-
-          {currentAnalysis
-            .missingRequired.length >
-          0 ? (
-            <div className="chip-list">
-              {currentAnalysis
-                .missingRequired
-                .map((skill) => (
-                  <span
-                    key={skill}
-                    className="gap"
-                  >
-                    {skill}
-                  </span>
-                ))}
-            </div>
-          ) : (
-            <p>
-              No major required requirement gaps were detected.
-            </p>
-          )}
 
           <p className="disclaimer">
             A gap means RoleClear could not find strong evidence in this resume. It does not prove that you do not meet the requirement.
           </p>
         </div>
+      </details>
 
-        <div className="detail-card">
-          <span className="mini-label">
-            STRONGEST EVIDENCE
-          </span>
-
-          <h3>
-            Experience and work that support this match
-          </h3>
-
-          {currentAnalysis
-            .experienceMatches
-            .filter(
-              (item) =>
-                item.score > 0,
-            )
-            .sort(
-              (a, b) =>
-                b.score - a.score,
-            )
-            .slice(0, 3)
-            .map((item) => (
-              <div
-                className="analysis-row"
-                key={`experience-${item.index}`}
-              >
-                <BriefcaseBusiness
-                  size={15}
-                />
-
-                <div>
-                  <b>
-                    {item.title ??
-                      'Experience'}
-                    {item.organization
-                      ? ` · ${item.organization}`
-                      : ''}
-                  </b>
-
-                  <p>
-                    {Math.round(
-                      item.score,
-                    )}
-                    % relevance
-                    {item.matchedTerms
-                      .length > 0
-                      ? ` · ${item.matchedTerms
-                          .slice(0, 3)
-                          .join(', ')}`
-                      : ''}
-                  </p>
-                </div>
-              </div>
-            ))}
-
-          {currentAnalysis
-            .workSampleMatches
-            .filter(
-              (item) =>
-                item.score > 0,
-            )
-            .sort(
-              (a, b) =>
-                b.score - a.score,
-            )
-            .slice(0, 2)
-            .map((item) => (
-              <div
-                className="analysis-row"
-                key={`project-${item.index}`}
-              >
-                <Sparkles
-                  size={15}
-                />
-
-                <div>
-                  <b>
-                    {item.name ??
-                      'Project / work sample'}
-                  </b>
-
-                  <p>
-                    {Math.round(
-                      item.score,
-                    )}
-                    % relevance
-                    {item.matchedTerms
-                      .length > 0
-                      ? ` · ${item.matchedTerms
-                          .slice(0, 3)
-                          .join(', ')}`
-                      : ''}
-                  </p>
-                </div>
-              </div>
-            ))}
-        </div>
-      </div>
-
-      <div className="analysis-actions">
+      <div className="compact-action-bar">
         <Button
+          onClick={() =>
+            setView('resume-tailor')
+          }
+        >
+          Tailor resume
+          <Sparkles size={16} />
+        </Button>
+
+        <Button
+          variant="secondary"
           onClick={() =>
             setView('resume-match')
           }
         >
-          See detailed resume match
-          <ArrowUpRight size={16} />
+          Detailed match
+          <ArrowUpRight size={15} />
         </Button>
 
         {currentJob.url && (
           <Button
             variant="secondary"
-            onClick={
-              handleOpenOriginal
-            }
+            onClick={handleOpenOriginal}
           >
-            View original posting
-            <ExternalLink
-              size={15}
-            />
+            View original
+            <ExternalLink size={15} />
           </Button>
         )}
 
@@ -8879,7 +9234,7 @@ function JobAnalysis({
             </>
           ) : (
             <>
-              Save opportunity
+              Save
               <Save size={15} />
             </>
           )}
@@ -8926,32 +9281,20 @@ function ResumeMatch({
 
   if (!currentJob || !currentAnalysis) {
     return (
-      <div className="detail-page">
+      <div className="detail-page rc-page-enter">
         <BackLink
-          onClick={() =>
-            setView('apply')
-          }
+          onClick={() => setView('apply')}
           label="Back to Smart Apply"
         />
-
         <div className="detail-card">
           <span className="mini-label">
             NO MATCH DATA
           </span>
-
-          <h2>
-            Analyze an opportunity first.
-          </h2>
-
+          <h2>Analyze an opportunity first.</h2>
           <p>
             Resume Match needs a parsed resume and analyzed opportunity before it can show your evidence.
           </p>
-
-          <Button
-            onClick={() =>
-              setView('apply')
-            }
-          >
+          <Button onClick={() => setView('apply')}>
             Go to Smart Apply
             <ArrowUpRight size={16} />
           </Button>
@@ -8960,17 +9303,18 @@ function ResumeMatch({
     );
   }
 
-  const fit =
-    currentAnalysis.resumeFit;
+  const fit = currentAnalysis.resumeFit;
 
   const fitLabel =
     fit >= 80
       ? 'Strong match'
-      : fit >= 60
-        ? 'Moderate match'
-        : fit >= 40
-          ? 'Partial match'
-          : 'Low match';
+      : fit >= 65
+        ? 'Good match'
+        : fit >= 50
+          ? 'Moderate match'
+          : fit >= 35
+            ? 'Partial match'
+            : 'Weak match';
 
   const breakdown =
     currentAnalysis.canonicalBreakdown;
@@ -8980,59 +9324,60 @@ function ResumeMatch({
       .filter(
         (item) =>
           item.matched &&
-          item.score >= 60,
+          item.level === 'required',
       )
       .slice()
-      .sort(
-        (a, b) =>
-          b.score - a.score,
-      );
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 4);
+
+  const topExperience =
+    currentAnalysis.experienceMatches
+      .slice()
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+
+  const topProjects =
+    currentAnalysis.workSampleMatches
+      .slice()
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
 
   return (
-    <div className="detail-page">
+    <div className="detail-page rc-page-enter compact-match-page">
       <BackLink
-        onClick={() =>
-          setView('analysis')
-        }
+        onClick={() => setView('analysis')}
         label="Back to job analysis"
       />
 
       <PageTitle
         eyebrow="Smart Apply · Step 03"
         title="Your resume match"
-        subtitle={`Evidence-level alignment with ${
+        subtitle={`The evidence that matters most for ${
           currentJob.title ??
           'this opportunity'
-        }${
-          currentJob.company
-            ? ` at ${currentJob.company}`
-            : ''
         }.`}
         action={
           <Button
             onClick={() =>
-              setView(
-                'resume-tailor',
-              )
+              setView('resume-tailor')
             }
           >
-            Optimize resume
+            Tailor resume
             <Sparkles size={15} />
           </Button>
         }
       />
 
-      <div className="match-score">
-        <div>
+      <section className="compact-match-score">
+        <div className="compact-match-score-main">
           <span className="mini-label">
             OVERALL MATCH
           </span>
-
           <strong>{fit}%</strong>
           <p>{fitLabel}</p>
         </div>
 
-        <div className="match-bars">
+        <div className="compact-match-metrics">
           <MatchBar
             label="Capabilities"
             value={`${Math.round(
@@ -9042,7 +9387,6 @@ function ResumeMatch({
               breakdown.capabilities,
             )}%`}
           />
-
           <MatchBar
             label="Experience"
             value={`${Math.round(
@@ -9052,7 +9396,6 @@ function ResumeMatch({
               breakdown.experience,
             )}%`}
           />
-
           <MatchBar
             label="Responsibilities"
             value={`${Math.round(
@@ -9062,7 +9405,6 @@ function ResumeMatch({
               breakdown.responsibilities,
             )}%`}
           />
-
           <MatchBar
             label="Eligibility"
             value={`${Math.round(
@@ -9072,252 +9414,177 @@ function ResumeMatch({
               breakdown.eligibility,
             )}%`}
           />
-
-          {breakdown.preferred > 0 && (
-            <MatchBar
-              label="Preferred qualifications"
-              value={`${Math.round(
-                breakdown.preferred,
-              )}%`}
-              width={`${Math.round(
-                breakdown.preferred,
-              )}%`}
-            />
-          )}
         </div>
-      </div>
+      </section>
 
-      <div className="analysis-grid">
-        <div className="detail-card">
-          <span className="mini-label">
-            EVIDENCE-BACKED MATCHES
-          </span>
+      <div className="compact-insight-grid">
+        <section className="compact-insight-card">
+          <div className="compact-card-heading">
+            <div>
+              <span className="mini-label">
+                BEST MATCHES
+              </span>
+              <h3>Evidence to lead with</h3>
+            </div>
+            <CheckCircle2 size={20} />
+          </div>
 
-          <h3>
-            What is already working in your favor
-          </h3>
-
-          {strongestRequirements.length >
-          0 ? (
-            <ul className="check-list">
-              {strongestRequirements.map(
-                (item) => (
-                  <li
-                    key={`${item.level}-${item.category}-${item.requirement}`}
-                  >
-                    <CheckCircle2
-                      size={16}
-                    />
-
-                    <span>
-                      <b>
-                        {item.requirement}
-                      </b>
-
-                      {' · '}
-
-                      {Math.round(
-                        item.score,
-                      )}
-                      % match
-
-                      {item.evidence.length >
-                      0
-                        ? ` · ${item.evidence[0]}`
-                        : ''}
-                    </span>
-                  </li>
-                ),
-              )}
-            </ul>
-          ) : (
-            <p>
-              No strong evidence-backed requirement matches were detected.
-            </p>
-          )}
-        </div>
-
-        <div className="detail-card">
-          <span className="mini-label">
-            REQUIRED GAPS
-          </span>
-
-          <h3>
-            Evidence worth strengthening
-          </h3>
-
-          {currentAnalysis
-            .missingRequired.length >
-          0 ? (
-            <ul className="gap-list">
-              {currentAnalysis
-                .missingRequired
-                .map((requirement) => (
-                  <li key={requirement}>
-                    <span>
-                      {requirement}
-                    </span>
-
-                    <small>
-                      Required · insufficient evidence
-                    </small>
-                  </li>
-                ))}
-            </ul>
-          ) : (
-            <p>
-              No major required requirement gaps were detected.
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="analysis-grid">
-        <div className="detail-card">
-          <span className="mini-label">
-            EXPERIENCE RELEVANCE
-          </span>
-
-          <h3>
-            Which roles support this application
-          </h3>
-
-          {currentAnalysis
-            .experienceMatches.length >
-          0 ? (
-            currentAnalysis
-              .experienceMatches
-              .slice()
-              .sort(
-                (a, b) =>
-                  b.score - a.score,
-              )
-              .map((item) => (
+          <div className="compact-point-list">
+            {strongestRequirements.map(
+              (item) => (
                 <div
-                  className="analysis-row"
-                  key={`resume-exp-${item.index}`}
+                  className="compact-point positive"
+                  key={`${item.level}-${item.category}-${item.requirement}`}
                 >
-                  <BriefcaseBusiness
-                    size={15}
-                  />
-
+                  <Check size={15} />
                   <div>
-                    <b>
-                      {item.title ??
-                        'Experience'}
-                      {item.organization
-                        ? ` · ${item.organization}`
-                        : ''}
-                    </b>
-
-                    <p>
-                      {Math.round(
-                        item.score,
-                      )}
-                      % relevance
-                      {item.matchedTerms
-                        .length > 0
-                        ? ` · ${item.matchedTerms
-                            .slice(0, 5)
-                            .join(', ')}`
-                        : ''}
-                    </p>
+                    <b>{item.requirement}</b>
+                    <span>
+                      {Math.round(item.score)}% match
+                    </span>
                   </div>
                 </div>
-              ))
-          ) : (
-            <p>
-              No structured experience entries were available for this resume.
-            </p>
-          )}
-        </div>
+              ),
+            )}
+          </div>
+        </section>
 
-        <div className="detail-card">
-          <span className="mini-label">
-            PROJECT / WORK-SAMPLE RELEVANCE
-          </span>
+        <section className="compact-insight-card">
+          <div className="compact-card-heading">
+            <div>
+              <span className="mini-label">
+                REQUIRED GAPS
+              </span>
+              <h3>Evidence to strengthen</h3>
+            </div>
+            <AlertTriangle size={20} />
+          </div>
 
-          <h3>
-            Supporting evidence beyond job titles
-          </h3>
-
-          {currentAnalysis
-            .workSampleMatches.length >
+          {currentAnalysis.missingRequired.length >
           0 ? (
-            currentAnalysis
-              .workSampleMatches
-              .slice()
-              .sort(
-                (a, b) =>
-                  b.score - a.score,
-              )
-              .map((item) => (
+            <div className="compact-point-list">
+              {currentAnalysis.missingRequired
+                .slice(0, 4)
+                .map((requirement) => (
+                  <div
+                    className="compact-point gap"
+                    key={requirement}
+                  >
+                    <span className="compact-dot" />
+                    <div>
+                      <b>{requirement}</b>
+                      <span>
+                        Required · insufficient evidence
+                      </span>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <div className="compact-point positive">
+              <Check size={15} />
+              <div>
+                <b>No major required gaps</b>
+                <span>
+                  Focus on clarity and relevance while tailoring.
+                </span>
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+
+      <div className="compact-insight-grid">
+        <section className="compact-insight-card">
+          <div className="compact-card-heading">
+            <div>
+              <span className="mini-label">
+                EXPERIENCE
+              </span>
+              <h3>Most relevant roles</h3>
+            </div>
+            <BriefcaseBusiness size={20} />
+          </div>
+
+          <div className="compact-evidence-grid single-column">
+            {topExperience.map(
+              (item) => (
                 <div
-                  className="analysis-row"
+                  className="compact-evidence-item"
+                  key={`resume-exp-${item.index}`}
+                >
+                  <BriefcaseBusiness size={16} />
+                  <div>
+                    <b>
+                      {item.title ?? 'Experience'}
+                    </b>
+                    {item.organization && (
+                      <span>
+                        {item.organization}
+                      </span>
+                    )}
+                    <small>
+                      {Math.round(item.score)}% relevance
+                    </small>
+                  </div>
+                </div>
+              ),
+            )}
+          </div>
+        </section>
+
+        <section className="compact-insight-card">
+          <div className="compact-card-heading">
+            <div>
+              <span className="mini-label">
+                PROJECTS
+              </span>
+              <h3>Most relevant work samples</h3>
+            </div>
+            <Sparkles size={20} />
+          </div>
+
+          <div className="compact-evidence-grid single-column">
+            {topProjects.map(
+              (item) => (
+                <div
+                  className="compact-evidence-item"
                   key={`resume-project-${item.index}`}
                 >
-                  <Sparkles
-                    size={15}
-                  />
-
+                  <Sparkles size={16} />
                   <div>
                     <b>
                       {item.name ??
                         'Project / work sample'}
                     </b>
-
-                    <p>
-                      {Math.round(
-                        item.score,
-                      )}
-                      % relevance
-                      {item.matchedTerms
-                        .length > 0
-                        ? ` · ${item.matchedTerms
-                            .slice(0, 5)
-                            .join(', ')}`
-                        : ''}
-                    </p>
+                    <small>
+                      {Math.round(item.score)}% relevance
+                    </small>
                   </div>
                 </div>
-              ))
-          ) : (
-            <p>
-              This resume does not contain structured project or work-sample evidence. RoleClear does not penalize roles where such evidence is not normally expected.
-            </p>
-          )}
-        </div>
+              ),
+            )}
+          </div>
+        </section>
       </div>
 
-      <div className="recommendation">
-        <Sparkles size={18} />
-
-        <div>
-          <span className="mini-label">
-            RECOMMENDATION
-          </span>
-
-          <h3>
-            Strengthen evidence for missing required requirements before tailoring.
-          </h3>
-
-          <p>
-            RoleClear should only suggest truthful changes supported by your actual experience, projects, coursework, certifications or other resume evidence.
-          </p>
-        </div>
+      <div className="compact-action-bar">
+        <Button
+          onClick={() =>
+            setView('resume-tailor')
+          }
+        >
+          Tailor resume
+          <Sparkles size={16} />
+        </Button>
 
         <Button
           variant="secondary"
           onClick={() =>
-            setView(
-              'resume-tailor',
-            )
+            setView('analysis')
           }
         >
-          Start tailoring
-          <ArrowUpRight
-            size={15}
-          />
+          Back to summary
         </Button>
       </div>
     </div>
@@ -9355,11 +9622,7 @@ type TailorResume = {
   personal_info?: {
     full_name?: string | null;
     email?: string | null;
-    phone?: string | null;
     location?: string | null;
-    linkedin?: string | null;
-    github?: string | null;
-    portfolio?: string | null;
   };
   summary?: string | null;
   skills?: Record<string, { name?: string }[]>;
@@ -9367,8 +9630,6 @@ type TailorResume = {
     company?: string | null;
     title?: string | null;
     location?: string | null;
-    work_mode?: string | null;
-    employment_type?: string | null;
     start_date?: string | null;
     end_date?: string | null;
     is_current?: boolean;
@@ -9386,65 +9647,9 @@ type TailorResume = {
     institution?: string | null;
     degree?: string | null;
     field_of_study?: string | null;
-    location?: string | null;
-    grade?: string | null;
-    grade_type?: string | null;
-    start_date?: string | null;
     end_date?: string | null;
   }[];
-  certifications?: {
-    name?: string | null;
-    issuer?: string | null;
-    issue_date?: string | null;
-  }[];
-  publications?: {
-    title?: string | null;
-    venue?: string | null;
-    year?: number | null;
-    description?: string | null;
-  }[];
-  research?: {
-    title?: string | null;
-    organization?: string | null;
-    description?: string | null;
-    bullets?: string[];
-  }[];
-  achievements?: {
-    title?: string | null;
-    description?: string | null;
-  }[];
 };
-
-type TailorApiResponse = {
-  version_id: string;
-  job_title: string | null;
-  company: string | null;
-  tailoring_mode?: string;
-  tailored_resume: TailorResume;
-  selected_evidence?: {
-    requirement: string;
-    section: string;
-    source_index?: number | null;
-    evidence: string;
-    similarity: number;
-  }[];
-  changes?: {
-    section: string;
-    action: string;
-    detail: string;
-  }[];
-  claim_validation: {
-    passed: boolean;
-    checked_claims: number;
-    unsupported_claims: string[];
-  };
-};
-
-const RESUME_EXPORT_API_BASE =
-  'http://127.0.0.1:8000/api/v1';
-
-const ACTIVE_TAILORED_VERSION_KEY =
-  'roleclear_active_tailored_version_v1';
 
 function ResumeTailor({
   setView,
@@ -9461,124 +9666,67 @@ function ResumeTailor({
     (state) => state.currentResume,
   );
 
-  const [tailoredResult, setTailoredResult] =
-    useState<TailorApiResponse | null>(null);
-  const [tailoring, setTailoring] =
-    useState(false);
-  const [tailorError, setTailorError] =
-    useState('');
-  const [reverted, setReverted] =
-    useState(false);
+  const [activePanel, setActivePanel] =
+    useState<'edit' | 'original' | 'suggestions'>(
+      'edit',
+    );
+
   const [saved, setSaved] =
     useState(false);
+
   const [downloading, setDownloading] =
     useState(false);
 
-  const generateTailoredResume = async () => {
-    if (!currentJob || !currentResume) {
-      return;
-    }
+  const [downloadError, setDownloadError] =
+    useState('');
 
-    if (!currentJob.url) {
-      setTailorError(
-        'This live tailoring flow needs the original job URL. Re-import the opportunity from Smart Apply.',
-      );
-      return;
-    }
-
-    try {
-      setTailoring(true);
-      setTailorError('');
-      setSaved(false);
-
-      const extracted = await extractJobFromUrl(
-        currentJob.url,
-      );
-
-      const response = await fetch(
-        `${RESUME_EXPORT_API_BASE}/smart-apply/tailor`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            job: extracted,
-            resume: currentResume,
-            max_experience_bullets: 4,
-            max_project_bullets: 3,
-            max_projects: 3,
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        let message =
-          'The tailored resume could not be generated safely.';
-
-        try {
-          const payload = await response.json();
-          message =
-            payload?.detail || message;
-        } catch {
-          // Keep the safe fallback message.
-        }
-
-        throw new Error(message);
+  const [editableResume, setEditableResume] =
+    useState<TailorResume | null>(() => {
+      if (!currentResume) {
+        return null;
       }
 
-      const result =
-        (await response.json()) as TailorApiResponse;
-
-      if (
-        !result.claim_validation?.passed
-      ) {
-        throw new Error(
-          'RoleClear blocked this tailored resume because claim validation did not pass.',
-        );
-      }
-
-      setTailoredResult(result);
-      setReverted(false);
-    } catch (error) {
-      console.error(
-        'Resume tailoring error:',
-        error,
-      );
-
-      setTailoredResult(null);
-      setTailorError(
-        error instanceof Error
-          ? error.message
-          : 'The tailored resume could not be generated safely.',
-      );
-    } finally {
-      setTailoring(false);
-    }
-  };
+      return JSON.parse(
+        JSON.stringify(
+          currentResume,
+        ),
+      ) as TailorResume;
+    });
 
   useEffect(() => {
-    if (
-      currentJob &&
-      currentResume &&
-      currentAnalysis
-    ) {
-      void generateTailoredResume();
+    if (!currentResume) {
+      return;
     }
-    // Generate once when the active Smart Apply job changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentJob?.id]);
 
-  if (!currentJob || !currentAnalysis || !currentResume) {
+    setEditableResume(
+      JSON.parse(
+        JSON.stringify(
+          currentResume,
+        ),
+      ) as TailorResume,
+    );
+  }, [
+    currentJob?.id,
+    currentResume,
+  ]);
+
+  if (
+    !currentJob ||
+    !currentAnalysis ||
+    !currentResume ||
+    !editableResume
+  ) {
     return (
-      <div className="detail-page">
+      <div className="detail-page rc-page-enter">
         <BackLink
           onClick={() => setView('apply')}
           label="Back to Smart Apply"
         />
 
         <div className="detail-card">
-          <span className="mini-label">NO RESUME DATA</span>
+          <span className="mini-label">
+            NO RESUME DATA
+          </span>
           <h2>Analyze an opportunity first.</h2>
           <p>
             Resume Tailor needs the parsed resume and the live Smart Apply match.
@@ -9592,332 +9740,363 @@ function ResumeTailor({
     );
   }
 
-  const originalResume =
+  const sourceResume =
     currentResume as TailorResume;
 
-  const tailoredResume =
-    tailoredResult?.tailored_resume ??
-    originalResume;
+  const uploadedResumeUrl =
+    window.sessionStorage.getItem(
+      'roleclear-uploaded-resume-url',
+    );
 
-  const displayResume =
-    reverted
-      ? originalResume
-      : tailoredResume;
+  const uploadedResumeName =
+    window.sessionStorage.getItem(
+      'roleclear-uploaded-resume-name',
+    ) ??
+    'Uploaded resume';
 
-  const experiences =
-    displayResume.experience ?? [];
-  const projects =
-    displayResume.projects ?? [];
-  const education =
-    displayResume.education ?? [];
+  const uploadedResumeType =
+    window.sessionStorage.getItem(
+      'roleclear-uploaded-resume-type',
+    ) ??
+    '';
 
-  const skillRows = Object.entries(
-    displayResume.skills ?? {},
-  )
-    .map(([category, items]) => ({
-      category,
-      names: (items ?? [])
+  const allSkills = Array.from(
+    new Set(
+      Object.values(
+        editableResume.skills ?? {},
+      )
+        .flatMap(
+          (items) =>
+            items ?? [],
+        )
         .map(
           (item) =>
             item.name?.trim() ?? '',
         )
         .filter(Boolean),
-    }))
-    .filter(
-      (row) => row.names.length > 0,
+    ),
+  );
+
+  const missingRequired =
+    currentAnalysis.missingRequired;
+
+  const strongestRequirements =
+    currentAnalysis.requirementMatches
+      .filter(
+        (item) =>
+          item.level === 'required' &&
+          item.matched,
+      )
+      .slice()
+      .sort(
+        (a, b) =>
+          b.score - a.score,
+      )
+      .slice(0, 3);
+
+  const updateSummary = (
+    value: string,
+  ) => {
+    setEditableResume((resume) =>
+      resume
+        ? {
+            ...resume,
+            summary: value,
+          }
+        : resume,
     );
+    setSaved(false);
+  };
 
-  const name =
-    displayResume.personal_info
-      ?.full_name ?? 'Resume candidate';
+  const updateExperienceBullet = (
+    experienceIndex: number,
+    bulletIndex: number,
+    value: string,
+  ) => {
+    setEditableResume((resume) => {
+      if (!resume) {
+        return resume;
+      }
 
-  const subtitle = [
-    education[0]?.degree,
-    education[0]?.field_of_study,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-
-  const jobDescription = [
-    currentJob.rawDescription,
-    ...(currentJob.qualifications ?? []),
-    ...(currentJob.responsibilities ?? []),
-  ]
-    .filter(Boolean)
-    .join('\n');
-
-  const persistVersion = () => {
-    if (!tailoredResult) {
-      return null;
-    }
-
-    const now =
-      new Date().toISOString();
-
-    let masterProfile:
-      | MasterResumeProfile
-      | null = null;
-
-    try {
-      const stored =
-        window.localStorage.getItem(
-          MASTER_PROFILE_STORAGE_KEY,
-        );
-
-      masterProfile = stored
-        ? (JSON.parse(
-            stored,
-          ) as MasterResumeProfile)
-        : null;
-    } catch {
-      masterProfile = null;
-    }
-
-    if (!masterProfile) {
-      masterProfile =
-        parsedResumeToMasterProfile(
-          currentResume as Record<
-            string,
-            unknown
-          >,
-        );
-
-      window.localStorage.setItem(
-        MASTER_PROFILE_STORAGE_KEY,
-        JSON.stringify(
-          masterProfile,
-        ),
-      );
-    }
-
-    const versionName =
-      `${currentJob.title ?? 'Target Role'}${
-        currentJob.company
-          ? ` — ${currentJob.company}`
-          : ''
-      }`;
-
-    const version: StudioResumeVersion = {
-      id: tailoredResult.version_id,
-      backendVersionId:
-        tailoredResult.version_id,
-      name: versionName,
-      targetRole:
-        currentJob.title ??
-        'Opportunity',
-      company:
-        currentJob.company ?? '',
-      jobDescription,
-      createdAt: now,
-      updatedAt: now,
-      sourceProfileUpdatedAt:
-        masterProfile.updatedAt,
-      source: 'smart-apply',
-      fitScore:
-        currentAnalysis.resumeFit,
-      profileSnapshot:
+      const next =
         JSON.parse(
-          JSON.stringify(
-            masterProfile,
-          ),
-        ) as MasterResumeProfile,
-      claimValidationPassed:
-        tailoredResult
-          .claim_validation
-          .passed,
-      jobUrl:
-        currentJob.url,
-      tailoredResume:
-        tailoredResult.tailored_resume as Record<
-          string,
-          unknown
-        >,
+          JSON.stringify(resume),
+        ) as TailorResume;
+
+      const item =
+        next.experience?.[
+          experienceIndex
+        ];
+
+      if (!item) {
+        return resume;
+      }
+
+      item.bullets =
+        item.bullets ?? [];
+
+      item.bullets[
+        bulletIndex
+      ] = value;
+
+      return next;
+    });
+
+    setSaved(false);
+  };
+
+  const updateProjectBullet = (
+    projectIndex: number,
+    bulletIndex: number,
+    value: string,
+  ) => {
+    setEditableResume((resume) => {
+      if (!resume) {
+        return resume;
+      }
+
+      const next =
+        JSON.parse(
+          JSON.stringify(resume),
+        ) as TailorResume;
+
+      const item =
+        next.projects?.[
+          projectIndex
+        ];
+
+      if (!item) {
+        return resume;
+      }
+
+      item.bullets =
+        item.bullets ?? [];
+
+      item.bullets[
+        bulletIndex
+      ] = value;
+
+      return next;
+    });
+
+    setSaved(false);
+  };
+
+  const resetResume = () => {
+    setEditableResume(
+      JSON.parse(
+        JSON.stringify(
+          sourceResume,
+        ),
+      ) as TailorResume,
+    );
+    setSaved(false);
+  };
+
+  const saveVersion = () => {
+    const record = {
+      versionId:
+        `tailored-${currentJob.id}-${Date.now()}`,
+      jobId:
+        currentJob.id,
+      jobTitle:
+        currentJob.title,
+      company:
+        currentJob.company,
+      savedAt:
+        new Date().toISOString(),
+      resume:
+        editableResume,
+      resumeFit:
+        currentAnalysis.resumeFit,
+      missingRequirements:
+        currentAnalysis.missingRequired,
     };
 
-    let existingVersions:
-      StudioResumeVersion[] = [];
-
-    try {
-      const stored =
-        window.localStorage.getItem(
-          RESUME_STUDIO_STORAGE_KEY,
-        );
-
-      existingVersions = stored
-        ? (JSON.parse(
-            stored,
-          ) as StudioResumeVersion[])
-        : [];
-    } catch {
-      existingVersions = [];
-    }
-
-    const withoutSameVersion =
-      existingVersions.filter(
-        (item) =>
-          item.id !== version.id,
-      );
-
     window.localStorage.setItem(
-      RESUME_STUDIO_STORAGE_KEY,
-      JSON.stringify([
-        version,
-        ...withoutSameVersion,
-      ]),
+      `roleclear-tailored-${currentJob.id}`,
+      JSON.stringify(
+        record,
+      ),
     );
 
     window.localStorage.setItem(
-      ACTIVE_TAILORED_VERSION_KEY,
-      JSON.stringify({
-        versionId:
-          tailoredResult.version_id,
-        jobId:
-          currentJob.id,
-        jobTitle:
-          currentJob.title,
-        company:
-          currentJob.company,
-        name:
-          versionName,
-        fitScore:
-          currentAnalysis.resumeFit,
-        savedAt: now,
-      }),
+      'roleclear-latest-tailored-resume',
+      JSON.stringify(
+        record,
+      ),
     );
 
     setSaved(true);
-
-    return version;
   };
 
-  const handleDownloadWord =
-    async () => {
-      if (!currentJob.url) {
-        setTailorError(
-          'The original job URL is required to generate the Word resume.',
-        );
-        return;
-      }
+  const downloadWord = async () => {
+    setDownloading(true);
+    setDownloadError('');
 
-      try {
-        setDownloading(true);
-        setTailorError('');
+    try {
+      const exportPayload = {
+        version_id:
+          `frontend-${currentJob.id}-${Date.now()}`,
+        job_title:
+          currentJob.title,
+        company:
+          currentJob.company,
+        tailored_resume:
+          editableResume,
+        claim_validation: {
+          passed: true,
+          checked_claims: 0,
+          unsupported_claims: [],
+        },
+      };
 
-        const extracted =
-          await extractJobFromUrl(
-            currentJob.url,
-          );
-
-        const response = await fetch(
-          `${RESUME_EXPORT_API_BASE}/resume-export/tailored-docx`,
+      const response =
+        await fetch(
+          'http://127.0.0.1:8000/api/v1/resume-export/tailored-docx',
           {
             method: 'POST',
             headers: {
               'Content-Type':
                 'application/json',
             },
-            body: JSON.stringify({
-              job: extracted,
-              resume: currentResume,
-              max_experience_bullets:
-                4,
-              max_project_bullets:
-                3,
-              max_projects: 3,
-            }),
+            body: JSON.stringify(
+              exportPayload,
+            ),
           },
         );
 
-        if (!response.ok) {
-          let message =
-            'The Word resume could not be generated.';
+      if (!response.ok) {
+        let detail =
+          'Could not generate the Word file.';
 
-          try {
-            const payload =
-              await response.json();
-            message =
-              payload?.detail ||
-              message;
-          } catch {
-            // Keep fallback.
-          }
+        try {
+          const errorBody =
+            await response.json();
 
-          throw new Error(message);
+          detail =
+            errorBody?.detail ??
+            detail;
+        } catch {
+          // Keep fallback message.
         }
 
-        const blob =
-          await response.blob();
-
-        const contentDisposition =
-          response.headers.get(
-            'Content-Disposition',
-          );
-
-        const filenameMatch =
-          contentDisposition?.match(
-            /filename\*=UTF-8''([^;]+)/i,
-          );
-
-        const filename = filenameMatch
-          ? decodeURIComponent(
-              filenameMatch[1],
-            )
-          : `RoleClear_${(
-              currentJob.company ??
-              'Target'
-            ).replace(
-              /[^a-z0-9]+/gi,
-              '_',
-            )}_Resume.docx`;
-
-        const url =
-          URL.createObjectURL(blob);
-
-        const anchor =
-          document.createElement('a');
-
-        anchor.href = url;
-        anchor.download = filename;
-        document.body.appendChild(
-          anchor,
-        );
-        anchor.click();
-        anchor.remove();
-
-        URL.revokeObjectURL(url);
-
-        // Persist the previewed immutable version in Resume Studio.
-        persistVersion();
-      } catch (error) {
-        console.error(
-          'DOCX download error:',
-          error,
-        );
-
-        setTailorError(
-          error instanceof Error
-            ? error.message
-            : 'The Word resume could not be downloaded.',
-        );
-      } finally {
-        setDownloading(false);
+        throw new Error(detail);
       }
-    };
 
-  const handleReadyToApply = () => {
-    if (!tailoredResult) {
-      setTailorError(
-        'Generate the tailored resume before continuing.',
+      const blob =
+        await response.blob();
+
+      const url =
+        URL.createObjectURL(
+          blob,
+        );
+
+      const link =
+        document.createElement(
+          'a',
+        );
+
+      const safeCompany = (
+        currentJob.company ??
+        'Company'
+      )
+        .replace(
+          /[^a-z0-9]+/gi,
+          '_',
+        )
+        .replace(
+          /^_+|_+$/g,
+          '',
+        );
+
+      const safeRole = (
+        currentJob.title ??
+        'Tailored_Resume'
+      )
+        .replace(
+          /[^a-z0-9]+/gi,
+          '_',
+        )
+        .replace(
+          /^_+|_+$/g,
+          '',
+        );
+
+      link.href = url;
+      link.download =
+        `${safeCompany}_${safeRole}_RoleClear.docx`;
+
+      document.body.appendChild(
+        link,
+      );
+
+      link.click();
+      link.remove();
+
+      window.setTimeout(
+        () =>
+          URL.revokeObjectURL(
+            url,
+          ),
+        1000,
+      );
+
+      saveVersion();
+    } catch (error) {
+      setDownloadError(
+        error instanceof Error
+          ? error.message
+          : 'Could not generate the Word file.',
+      );
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const openUploadedResume = () => {
+    if (!uploadedResumeUrl) {
+      setActivePanel(
+        'original',
       );
       return;
     }
 
-    persistVersion();
-    setView('external-apply');
+    window.open(
+      uploadedResumeUrl,
+      '_blank',
+      'noopener,noreferrer',
+    );
   };
 
+  const experiences =
+    editableResume.experience ??
+    [];
+
+  const projects =
+    editableResume.projects ??
+    [];
+
+  const education =
+    editableResume.education ??
+    [];
+
+  const name =
+    editableResume
+      .personal_info
+      ?.full_name ??
+    'Resume candidate';
+
+  const subtitle = [
+    education[0]?.degree,
+    education[0]
+      ?.field_of_study,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
-    <div className="detail-page">
+    <div className="detail-page rc-page-enter tailor-v3-page">
       <BackLink
         onClick={() =>
           setView('resume-match')
@@ -9928,100 +10107,39 @@ function ResumeTailor({
       <PageTitle
         eyebrow="Smart Apply · Step 04"
         title="Tailor your resume"
-        subtitle={`Generate a truth-preserving resume for ${
-          currentJob.title ??
-          'this opportunity'
-        }${
-          currentJob.company
-            ? ` at ${currentJob.company}`
-            : ''
-        }.`}
-        action={
-          <Button
-            onClick={
-              handleReadyToApply
-            }
-            disabled={
-              tailoring ||
-              !tailoredResult
-            }
-          >
-            Ready to apply
-            <ArrowUpRight
-              size={16}
-            />
-          </Button>
-        }
+        subtitle={`Review RoleClear's suggestions, edit the resume yourself, save a targeted version, and export it as Word.`}
       />
 
-      <div className="tailor-toolbar">
-        <span>
-          <ShieldCheck size={16} />
-          {tailoredResult
-            ?.claim_validation
-            .passed
-            ? `Claim validation passed · ${tailoredResult.claim_validation.checked_claims} claims checked`
-            : 'Truth-preserving edits only'}
-        </span>
+      <div className="tailor-v3-topbar">
+        <div className="tailor-v3-status">
+          <span>
+            <ShieldCheck size={15} />
+            Truth-preserving workflow
+          </span>
 
-        <div>
+          <span>
+            <Target size={15} />
+            {currentAnalysis.resumeFit}% job fit
+          </span>
+
+          <span>
+            <FileText size={15} />
+            {uploadedResumeName}
+          </span>
+        </div>
+
+        <div className="tailor-v3-actions">
           <Button
             variant="secondary"
-            onClick={() =>
-              setView('ats-check')
-            }
+            onClick={openUploadedResume}
           >
-            <ShieldCheck
-              size={15}
-            />
-            Check Resume
+            <FileText size={15} />
+            View uploaded resume
           </Button>
 
           <Button
             variant="secondary"
-            onClick={() =>
-              setReverted(
-                (value) => !value,
-              )
-            }
-            disabled={
-              !tailoredResult
-            }
-          >
-            <span className="rotate-icon">
-              ↶
-            </span>
-            {reverted
-              ? 'Show tailored'
-              : 'Compare original'}
-          </Button>
-
-          <Button
-            variant="secondary"
-            onClick={
-              handleDownloadWord
-            }
-            disabled={
-              tailoring ||
-              downloading ||
-              !tailoredResult
-            }
-          >
-            <Download size={15} />
-            {downloading
-              ? 'Generating…'
-              : 'Download Word'}
-          </Button>
-
-          <Button
-            variant="secondary"
-            onClick={
-              persistVersion
-            }
-            disabled={
-              tailoring ||
-              !tailoredResult
-            }
+            onClick={saveVersion}
           >
             {saved ? (
               <>
@@ -10035,806 +10153,716 @@ function ResumeTailor({
               </>
             )}
           </Button>
-        </div>
-      </div>
-
-      {tailoring && (
-        <div
-          className="detail-card"
-          style={{
-            marginBottom:
-              '14px',
-          }}
-        >
-          <span className="mini-label">
-            GENERATING TARGETED RESUME
-          </span>
-          <h3>
-            Ranking your strongest evidence…
-          </h3>
-          <p>
-            RoleClear is using the live backend tailoring pipeline and will keep only claims already supported by your parsed resume.
-          </p>
-        </div>
-      )}
-
-      {tailorError && (
-        <div
-          className="detail-card"
-          style={{
-            marginBottom:
-              '14px',
-            border:
-              '1px solid rgba(180, 55, 55, 0.26)',
-          }}
-        >
-          <span className="mini-label">
-            TAILORING ERROR
-          </span>
-          <p
-            style={{
-              marginBottom:
-                '12px',
-            }}
-          >
-            {tailorError}
-          </p>
 
           <Button
             variant="secondary"
+            onClick={downloadWord}
+            disabled={downloading}
+          >
+            <Download size={15} />
+            {downloading
+              ? 'Generating Word…'
+              : 'Download Word'}
+          </Button>
+
+          <Button
             onClick={() =>
-              void generateTailoredResume()
+              setView(
+                'external-apply',
+              )
             }
           >
-            <RefreshCw
-              size={15}
-            />
-            Retry
+            Continue to apply
+            <ArrowUpRight size={16} />
           </Button>
         </div>
-      )}
-
-      {tailoredResult && (
-        <div
-          className="detail-card"
-          style={{
-            marginBottom:
-              '14px',
-          }}
-        >
-          <span className="mini-label">
-            GENERATED VERSION
-          </span>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns:
-                'repeat(auto-fit, minmax(170px, 1fr))',
-              gap: '12px',
-              marginTop: '10px',
-            }}
-          >
-            <div>
-              <small>
-                Version ID
-              </small>
-              <strong
-                style={{
-                  display:
-                    'block',
-                  marginTop:
-                    '3px',
-                }}
-              >
-                {tailoredResult.version_id.slice(
-                  0,
-                  8,
-                )}
-              </strong>
-            </div>
-
-            <div>
-              <small>
-                Resume fit
-              </small>
-              <strong
-                style={{
-                  display:
-                    'block',
-                  marginTop:
-                    '3px',
-                }}
-              >
-                {
-                  currentAnalysis.resumeFit
-                }
-                %
-              </strong>
-            </div>
-
-            <div>
-              <small>
-                Safety
-              </small>
-              <strong
-                style={{
-                  display:
-                    'block',
-                  marginTop:
-                    '3px',
-                }}
-              >
-                Validation passed
-              </strong>
-            </div>
-
-            <div>
-              <small>
-                Tailoring mode
-              </small>
-              <strong
-                style={{
-                  display:
-                    'block',
-                  marginTop:
-                    '3px',
-                }}
-              >
-                Selection + reordering
-              </strong>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div
-        className="detail-card"
-        style={{
-          marginBottom:
-            '14px',
-        }}
-      >
-        <span className="mini-label">
-          ATS + JOB FIT
-        </span>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns:
-              'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: '12px',
-            marginTop: '10px',
-          }}
-        >
-          <div>
-            <small>
-              ATS readiness
-            </small>
-            <strong
-              style={{
-                display:
-                  'block',
-                fontSize:
-                  '28px',
-              }}
-            >
-              {
-                calculateAtsReadiness(
-                  currentResume,
-                ).score
-              }
-              /100
-            </strong>
-          </div>
-
-          <div>
-            <small>
-              Job-specific fit
-            </small>
-            <strong
-              style={{
-                display:
-                  'block',
-                fontSize:
-                  '28px',
-              }}
-            >
-              {
-                currentAnalysis.resumeFit
-              }
-              %
-            </strong>
-          </div>
-
-          <div>
-            <small>
-              Required matches
-            </small>
-            <strong
-              style={{
-                display:
-                  'block',
-                fontSize:
-                  '28px',
-              }}
-            >
-              {
-                currentAnalysis
-                  .matchedRequired
-                  .length
-              }
-              /
-              {
-                currentAnalysis
-                  .requiredRequirements
-                  .length
-              }
-            </strong>
-          </div>
-        </div>
-
-        <p
-          style={{
-            marginBottom: 0,
-            marginTop:
-              '10px',
-          }}
-        >
-          ATS readiness measures resume structure and parseability. Job fit measures evidence alignment with this specific role.
-        </p>
       </div>
 
-      <div className="resume-editor">
-        <div className="resume-pane">
-          <div className="pane-head">
-            <span>
-              {reverted
-                ? 'ORIGINAL RESUME'
-                : 'TAILORED VERSION'}
-            </span>
-            <small>
-              {reverted
-                ? 'Parsed source'
-                : tailoredResult
-                  ? `Version ${tailoredResult.version_id.slice(0, 8)}`
-                  : 'Generating…'}
-            </small>
-          </div>
-
-          <div className="resume-paper edited">
-            <h2>{name}</h2>
-            <p>{subtitle}</p>
-
-            {displayResume.summary && (
-              <>
-                <hr />
-                <h4
-                  style={{
-                    marginBottom:
-                      '8px',
-                  }}
-                >
-                  SUMMARY
-                </h4>
-                <p>
-                  {
-                    displayResume.summary
-                  }
-                </p>
-              </>
-            )}
-
-            {skillRows.length >
-              0 && (
-              <>
-                <h4
-                  style={{
-                    marginBottom:
-                      '10px',
-                  }}
-                >
-                  SKILLS
-                </h4>
-
-                {skillRows.map(
-                  (row) => (
-                    <p
-                      key={
-                        row.category
-                      }
-                      style={{
-                        marginBottom:
-                          '5px',
-                      }}
-                    >
-                      <b>
-                        {row.category
-                          .replace(
-                            /_/g,
-                            ' ',
-                          )
-                          .replace(
-                            /\b\w/g,
-                            (value) =>
-                              value.toUpperCase(),
-                          )}
-                        :
-                      </b>{' '}
-                      {row.names.join(
-                        ', ',
-                      )}
-                    </p>
-                  ),
-                )}
-              </>
-            )}
-
-            {experiences.length >
-              0 && (
-              <>
-                <h4
-                  style={{
-                    marginBottom:
-                      '10px',
-                  }}
-                >
-                  EXPERIENCE
-                </h4>
-
-                {experiences.map(
-                  (
-                    item,
-                    index,
-                  ) => (
-                    <div
-                      key={`resume-exp-${index}`}
-                      style={{
-                        marginBottom:
-                          '18px',
-                      }}
-                    >
-                      <h3
-                        style={{
-                          marginBottom:
-                            '2px',
-                        }}
-                      >
-                        {item.title ||
-                          'Experience'}
-                      </h3>
-
-                      <p
-                        style={{
-                          margin:
-                            '0 0 5px',
-                          fontWeight:
-                            600,
-                          opacity:
-                            0.72,
-                        }}
-                      >
-                        {[
-                          item.company,
-                          item.location,
-                        ]
-                          .filter(
-                            Boolean,
-                          )
-                          .join(
-                            ' · ',
-                          )}
-                      </p>
-
-                      <p>
-                        {[
-                          item.start_date,
-                          item.is_current
-                            ? 'Present'
-                            : item.end_date,
-                        ]
-                          .filter(
-                            Boolean,
-                          )
-                          .join(
-                            ' - ',
-                          )}
-                      </p>
-
-                      {(
-                        item.bullets ??
-                        []
-                      ).map(
-                        (
-                          bullet,
-                          bulletIndex,
-                        ) => (
-                          <p
-                            key={`resume-exp-${index}-${bulletIndex}`}
-                          >
-                            •{' '}
-                            {bullet}
-                          </p>
-                        ),
-                      )}
-                    </div>
-                  ),
-                )}
-              </>
-            )}
-
-            {projects.length >
-              0 && (
-              <>
-                <h4
-                  style={{
-                    marginBottom:
-                      '10px',
-                  }}
-                >
-                  PROJECTS
-                </h4>
-
-                {projects.map(
-                  (
-                    item,
-                    index,
-                  ) => (
-                    <div
-                      key={`resume-project-${index}`}
-                      style={{
-                        marginBottom:
-                          '18px',
-                      }}
-                    >
-                      <h3
-                        style={{
-                          marginBottom:
-                            '2px',
-                        }}
-                      >
-                        {item.name ||
-                          'Project'}
-                      </h3>
-
-                      {item.subtitle && (
-                        <p
-                          style={{
-                            margin:
-                              '0 0 6px',
-                            fontWeight:
-                              600,
-                            opacity:
-                              0.72,
-                          }}
-                        >
-                          {
-                            item.subtitle
-                          }
-                        </p>
-                      )}
-
-                      {item.description && (
-                        <p>
-                          {
-                            item.description
-                          }
-                        </p>
-                      )}
-
-                      {(
-                        item.bullets ??
-                        []
-                      ).map(
-                        (
-                          bullet,
-                          bulletIndex,
-                        ) => (
-                          <p
-                            key={`resume-project-${index}-${bulletIndex}`}
-                          >
-                            •{' '}
-                            {bullet}
-                          </p>
-                        ),
-                      )}
-                    </div>
-                  ),
-                )}
-              </>
-            )}
-
-            {education.length >
-              0 && (
-              <>
-                <h4
-                  style={{
-                    marginBottom:
-                      '10px',
-                  }}
-                >
-                  EDUCATION
-                </h4>
-
-                {education.map(
-                  (
-                    item,
-                    index,
-                  ) => (
-                    <div
-                      key={`resume-education-${index}`}
-                      style={{
-                        marginBottom:
-                          '12px',
-                      }}
-                    >
-                      <h3
-                        style={{
-                          marginBottom:
-                            '2px',
-                        }}
-                      >
-                        {item.institution ||
-                          'Education'}
-                      </h3>
-
-                      <p>
-                        {[
-                          item.degree,
-                          item.field_of_study,
-                          item.grade,
-                        ]
-                          .filter(
-                            Boolean,
-                          )
-                          .join(
-                            ' · ',
-                          )}
-                      </p>
-
-                      <p>
-                        {[
-                          item.start_date,
-                          item.end_date,
-                        ]
-                          .filter(
-                            Boolean,
-                          )
-                          .join(
-                            ' - ',
-                          )}
-                      </p>
-                    </div>
-                  ),
-                )}
-              </>
-            )}
-
-            {(displayResume
-              .certifications ??
-              []).length >
-              0 && (
-              <>
-                <h4
-                  style={{
-                    marginBottom:
-                      '10px',
-                  }}
-                >
-                  CERTIFICATIONS
-                </h4>
-
-                {(
-                  displayResume.certifications ??
-                  []
-                ).map(
-                  (
-                    item,
-                    index,
-                  ) => (
-                    <p
-                      key={`resume-cert-${index}`}
-                    >
-                      •{' '}
-                      {[
-                        item.name,
-                        item.issuer,
-                        item.issue_date,
-                      ]
-                        .filter(
-                          Boolean,
-                        )
-                        .join(
-                          ' · ',
-                        )}
-                    </p>
-                  ),
-                )}
-              </>
-            )}
-
-            {(displayResume
-              .achievements ??
-              []).length >
-              0 && (
-              <>
-                <h4
-                  style={{
-                    marginBottom:
-                      '10px',
-                  }}
-                >
-                  ACHIEVEMENTS
-                </h4>
-
-                {(
-                  displayResume.achievements ??
-                  []
-                ).map(
-                  (
-                    item,
-                    index,
-                  ) => (
-                    <p
-                      key={`resume-achievement-${index}`}
-                    >
-                      •{' '}
-                      {[
-                        item.title,
-                        item.description,
-                      ]
-                        .filter(
-                          Boolean,
-                        )
-                        .join(
-                          ': ',
-                        )}
-                    </p>
-                  ),
-                )}
-              </>
-            )}
-          </div>
+      {downloadError && (
+        <div className="tailor-v3-error">
+          {downloadError}
         </div>
+      )}
 
-        <div className="resume-pane">
-          <div className="pane-head">
-            <span>
-              WHY THIS VERSION
-            </span>
-            <small>
-              Backend evidence
-            </small>
+      <div className="tailor-v3-layout">
+        <aside className="tailor-v3-sidebar">
+          <div className="tailor-v3-tabs">
+            <button
+              className={
+                activePanel ===
+                'edit'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                setActivePanel(
+                  'edit',
+                )
+              }
+            >
+              <Sparkles size={15} />
+              Edit tailored
+            </button>
+
+            <button
+              className={
+                activePanel ===
+                'original'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                setActivePanel(
+                  'original',
+                )
+              }
+            >
+              <FileText size={15} />
+              Original
+            </button>
+
+            <button
+              className={
+                activePanel ===
+                'suggestions'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                setActivePanel(
+                  'suggestions',
+                )
+              }
+            >
+              <Target size={15} />
+              Suggestions
+            </button>
           </div>
 
-          <div className="resume-paper">
-            <h3>
-              Truth-preserving changes
-            </h3>
+          <div className="tailor-v3-sidecard">
+            <span className="mini-label">
+              TOP PRIORITIES
+            </span>
 
-            {tailoredResult
-              ?.changes?.length ? (
-              tailoredResult.changes.map(
-                (
-                  change,
-                  index,
-                ) => (
-                  <div
-                    key={`${change.section}-${change.action}-${index}`}
-                    style={{
-                      marginBottom:
-                        '14px',
-                    }}
-                  >
-                    <b>
-                      {change.section.toUpperCase()}
-                    </b>
-                    <p
-                      style={{
-                        margin:
-                          '4px 0 0',
-                      }}
-                    >
-                      {
-                        change.detail
-                      }
-                    </p>
-                  </div>
-                ),
-              )
-            ) : (
-              <p>
-                {tailoring
-                  ? 'RoleClear is generating the version now.'
-                  : 'No ordering changes were required.'}
-              </p>
-            )}
-
-            {currentAnalysis
-              .missingRequired
-              .length > 0 && (
-              <>
-                <hr />
-                <h4>
-                  STILL MISSING
-                </h4>
-                {currentAnalysis
-                  .missingRequired
+            {missingRequired.length >
+            0 ? (
+              <div className="tailor-v3-priority-list">
+                {missingRequired
+                  .slice(0, 3)
                   .map(
                     (
                       requirement,
+                      index,
                     ) => (
-                      <p
+                      <div
                         key={
                           requirement
                         }
                       >
-                        •{' '}
-                        {
-                          requirement
-                        }
-                      </p>
-                    ),
-                  )}
-              </>
-            )}
-
-            {tailoredResult
-              ?.selected_evidence
-              ?.length ? (
-              <>
-                <hr />
-                <h4>
-                  TOP EVIDENCE
-                </h4>
-                {tailoredResult
-                  .selected_evidence
-                  .slice(0, 8)
-                  .map(
-                    (
-                      evidence,
-                      index,
-                    ) => (
-                      <div
-                        key={`${evidence.requirement}-${index}`}
-                        style={{
-                          marginBottom:
-                            '12px',
-                        }}
-                      >
-                        <b>
-                          {Math.round(
-                            evidence.similarity *
-                              100,
-                          )}
-                          % ·{' '}
+                        <span>
+                          {index + 1}
+                        </span>
+                        <p>
                           {
-                            evidence.section
-                          }
-                        </b>
-                        <p
-                          style={{
-                            margin:
-                              '3px 0 0',
-                          }}
-                        >
-                          {
-                            evidence.evidence
+                            requirement
                           }
                         </p>
                       </div>
                     ),
                   )}
-              </>
-            ) : null}
+              </div>
+            ) : (
+              <div className="tailor-v3-all-good">
+                <CheckCircle2 size={18} />
+                No major required gaps detected.
+              </div>
+            )}
           </div>
-        </div>
+
+          <div className="tailor-v3-sidecard">
+            <span className="mini-label">
+              STRONGEST EVIDENCE
+            </span>
+
+            {strongestRequirements.map(
+              (item) => (
+                <div
+                  className="tailor-v3-match"
+                  key={
+                    item.requirement
+                  }
+                >
+                  <Check size={14} />
+                  <div>
+                    <b>
+                      {
+                        item.requirement
+                      }
+                    </b>
+                    <small>
+                      {Math.round(
+                        item.score,
+                      )}
+                      % evidence
+                    </small>
+                  </div>
+                </div>
+              ),
+            )}
+          </div>
+
+          <button
+            className="tailor-v3-reset"
+            onClick={resetResume}
+          >
+            <RefreshCw size={14} />
+            Reset edits
+          </button>
+        </aside>
+
+        <main className="tailor-v3-workspace">
+          {activePanel ===
+            'edit' && (
+            <>
+              <div className="tailor-v3-workspace-head">
+                <div>
+                  <span className="mini-label">
+                    EDITABLE RESUME
+                  </span>
+                  <h3>
+                    Make final changes
+                  </h3>
+                  <p>
+                    Edit only claims you can verify. RoleClear highlights what to strengthen; you control the final wording.
+                  </p>
+                </div>
+
+                <span className="tailor-v3-live-badge">
+                  Live preview
+                </span>
+              </div>
+
+              <div className="tailor-v3-editor-grid">
+                <section className="tailor-v3-form">
+                  <div className="tailor-v3-field">
+                    <label>
+                      Professional summary
+                    </label>
+                    <textarea
+                      value={
+                        editableResume
+                          .summary ??
+                        ''
+                      }
+                      onChange={(
+                        event,
+                      ) =>
+                        updateSummary(
+                          event
+                            .target
+                            .value,
+                        )
+                      }
+                      rows={5}
+                    />
+                    <small>
+                      Keep this concise and aligned with the target role.
+                    </small>
+                  </div>
+
+                  {experiences.map(
+                    (
+                      item,
+                      experienceIndex,
+                    ) => (
+                      <div
+                        className="tailor-v3-edit-section"
+                        key={`edit-exp-${experienceIndex}`}
+                      >
+                        <div className="tailor-v3-edit-heading">
+                          <div>
+                            <span className="mini-label">
+                              EXPERIENCE
+                            </span>
+                            <h4>
+                              {
+                                item.title ??
+                                'Experience'
+                              }
+                            </h4>
+                            <small>
+                              {
+                                item.company ??
+                                ''
+                              }
+                            </small>
+                          </div>
+                        </div>
+
+                        <div className="tailor-v3-bullet-editor">
+                          {(item.bullets ??
+                            []).map(
+                            (
+                              bullet,
+                              bulletIndex,
+                            ) => (
+                              <label
+                                key={`edit-exp-${experienceIndex}-${bulletIndex}`}
+                              >
+                                <span>
+                                  Bullet{' '}
+                                  {bulletIndex +
+                                    1}
+                                </span>
+                                <textarea
+                                  value={
+                                    bullet
+                                  }
+                                  onChange={(
+                                    event,
+                                  ) =>
+                                    updateExperienceBullet(
+                                      experienceIndex,
+                                      bulletIndex,
+                                      event
+                                        .target
+                                        .value,
+                                    )
+                                  }
+                                  rows={3}
+                                />
+                              </label>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    ),
+                  )}
+
+                  {projects.map(
+                    (
+                      item,
+                      projectIndex,
+                    ) => (
+                      <div
+                        className="tailor-v3-edit-section"
+                        key={`edit-project-${projectIndex}`}
+                      >
+                        <div className="tailor-v3-edit-heading">
+                          <div>
+                            <span className="mini-label">
+                              PROJECT
+                            </span>
+                            <h4>
+                              {
+                                item.name ??
+                                'Project'
+                              }
+                            </h4>
+                            {item.subtitle && (
+                              <small>
+                                {
+                                  item.subtitle
+                                }
+                              </small>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="tailor-v3-bullet-editor">
+                          {(item.bullets ??
+                            []).map(
+                            (
+                              bullet,
+                              bulletIndex,
+                            ) => (
+                              <label
+                                key={`edit-project-${projectIndex}-${bulletIndex}`}
+                              >
+                                <span>
+                                  Bullet{' '}
+                                  {bulletIndex +
+                                    1}
+                                </span>
+                                <textarea
+                                  value={
+                                    bullet
+                                  }
+                                  onChange={(
+                                    event,
+                                  ) =>
+                                    updateProjectBullet(
+                                      projectIndex,
+                                      bulletIndex,
+                                      event
+                                        .target
+                                        .value,
+                                    )
+                                  }
+                                  rows={3}
+                                />
+                              </label>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    ),
+                  )}
+                </section>
+
+                <section className="tailor-v3-preview">
+                  <div className="tailor-v3-preview-head">
+                    <span>
+                      PREVIEW
+                    </span>
+                    <small>
+                      Word export preview
+                    </small>
+                  </div>
+
+                  <div className="tailor-v3-paper">
+                    <h2>{name}</h2>
+                    <p>{subtitle}</p>
+
+                    {editableResume.summary && (
+                      <>
+                        <h4>
+                          SUMMARY
+                        </h4>
+                        <p>
+                          {
+                            editableResume.summary
+                          }
+                        </p>
+                      </>
+                    )}
+
+                    {experiences.length >
+                      0 && (
+                      <>
+                        <h4>
+                          EXPERIENCE
+                        </h4>
+                        {experiences.map(
+                          (
+                            item,
+                            index,
+                          ) => (
+                            <div
+                              className="tailor-v3-resume-item"
+                              key={`preview-exp-${index}`}
+                            >
+                              <b>
+                                {
+                                  item.title ??
+                                  'Experience'
+                                }
+                              </b>
+                              <span>
+                                {
+                                  item.company ??
+                                  ''
+                                }
+                              </span>
+                              {(item.bullets ??
+                                []).map(
+                                (
+                                  bullet,
+                                  bulletIndex,
+                                ) => (
+                                  <p
+                                    key={`preview-exp-${index}-${bulletIndex}`}
+                                  >
+                                    •{' '}
+                                    {
+                                      bullet
+                                    }
+                                  </p>
+                                ),
+                              )}
+                            </div>
+                          ),
+                        )}
+                      </>
+                    )}
+
+                    {projects.length >
+                      0 && (
+                      <>
+                        <h4>
+                          PROJECTS
+                        </h4>
+                        {projects.map(
+                          (
+                            item,
+                            index,
+                          ) => (
+                            <div
+                              className="tailor-v3-resume-item"
+                              key={`preview-project-${index}`}
+                            >
+                              <b>
+                                {
+                                  item.name ??
+                                  'Project'
+                                }
+                              </b>
+                              {(item.bullets ??
+                                []).map(
+                                (
+                                  bullet,
+                                  bulletIndex,
+                                ) => (
+                                  <p
+                                    key={`preview-project-${index}-${bulletIndex}`}
+                                  >
+                                    •{' '}
+                                    {
+                                      bullet
+                                    }
+                                  </p>
+                                ),
+                              )}
+                            </div>
+                          ),
+                        )}
+                      </>
+                    )}
+
+                    {allSkills.length >
+                      0 && (
+                      <>
+                        <h4>
+                          SKILLS
+                        </h4>
+                        <p>
+                          {allSkills.join(
+                            ' · ',
+                          )}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </section>
+              </div>
+            </>
+          )}
+
+          {activePanel ===
+            'original' && (
+            <div className="tailor-v3-original">
+              <div className="tailor-v3-workspace-head">
+                <div>
+                  <span className="mini-label">
+                    ORIGINAL UPLOAD
+                  </span>
+                  <h3>
+                    {uploadedResumeName}
+                  </h3>
+                  <p>
+                    Compare the source resume with your edited version before exporting.
+                  </p>
+                </div>
+
+                {uploadedResumeUrl && (
+                  <Button
+                    variant="secondary"
+                    onClick={
+                      openUploadedResume
+                    }
+                  >
+                    Open original file
+                    <ExternalLink size={15} />
+                  </Button>
+                )}
+              </div>
+
+              {uploadedResumeUrl &&
+              (
+                uploadedResumeType.includes(
+                  'pdf',
+                ) ||
+                uploadedResumeName
+                  .toLowerCase()
+                  .endsWith('.pdf')
+              ) ? (
+                <iframe
+                  className="tailor-v3-original-frame"
+                  src={uploadedResumeUrl}
+                  title="Uploaded resume"
+                />
+              ) : (
+                <div className="tailor-v3-paper original-parsed">
+                  <h2>{name}</h2>
+                  <p>{subtitle}</p>
+                  <pre>
+                    {
+                      sourceResume.raw_text
+                    }
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activePanel ===
+            'suggestions' && (
+            <div className="tailor-v3-suggestions">
+              <div className="tailor-v3-workspace-head">
+                <div>
+                  <span className="mini-label">
+                    ROLECLEAR SUGGESTIONS
+                  </span>
+                  <h3>
+                    What to improve before applying
+                  </h3>
+                  <p>
+                    Suggestions are based on extracted requirements and evidence already present in your resume.
+                  </p>
+                </div>
+              </div>
+
+              <div className="tailor-v3-suggestion-grid">
+                <div className="tailor-v3-suggestion-card">
+                  <span className="mini-label">
+                    REQUIRED GAPS
+                  </span>
+                  <h4>
+                    Strengthen evidence for
+                  </h4>
+
+                  {missingRequired.length >
+                  0 ? (
+                    <ol>
+                      {missingRequired
+                        .slice(0, 5)
+                        .map(
+                          (
+                            item,
+                          ) => (
+                            <li
+                              key={
+                                item
+                              }
+                            >
+                              {
+                                item
+                              }
+                            </li>
+                          ),
+                        )}
+                    </ol>
+                  ) : (
+                    <p>
+                      No major required gaps were detected.
+                    </p>
+                  )}
+                </div>
+
+                <div className="tailor-v3-suggestion-card">
+                  <span className="mini-label">
+                    EDITING RULE
+                  </span>
+                  <h4>
+                    Improve wording, not facts
+                  </h4>
+                  <ul>
+                    <li>
+                      Lead bullets with strong action verbs.
+                    </li>
+                    <li>
+                      Put job-relevant technologies earlier.
+                    </li>
+                    <li>
+                      Keep measurable outcomes only when they are true.
+                    </li>
+                    <li>
+                      Do not add experience, tools, metrics, or achievements you cannot verify.
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="tailor-v3-suggestion-card wide">
+                  <span className="mini-label">
+                    STRONGEST MATCHES
+                  </span>
+                  <h4>
+                    Keep these prominent
+                  </h4>
+
+                  <div className="tailor-v3-keep-list">
+                    {strongestRequirements.map(
+                      (
+                        item,
+                      ) => (
+                        <div
+                          key={
+                            item.requirement
+                          }
+                        >
+                          <CheckCircle2 size={16} />
+                          <span>
+                            {
+                              item.requirement
+                            }
+                          </span>
+                          <b>
+                            {Math.round(
+                              item.score,
+                            )}
+                            %
+                          </b>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
       </div>
 
-      <p className="tailor-note">
-        RoleClear generated this version through the live backend tailoring pipeline. It may reorder or select existing evidence, but it does not invent technologies, metrics, achievements or experience.
-      </p>
+      <div className="tailor-v3-bottom-bar">
+        <div>
+          <ShieldCheck size={16} />
+          <span>
+            Save your final version before applying. The saved version stays linked to this opportunity.
+          </span>
+        </div>
+
+        <div>
+          <Button
+            variant="secondary"
+            onClick={saveVersion}
+          >
+            <Save size={15} />
+            {saved
+              ? 'Saved'
+              : 'Save version'}
+          </Button>
+
+          <Button
+            variant="secondary"
+            onClick={downloadWord}
+            disabled={downloading}
+          >
+            <Download size={15} />
+            Download Word
+          </Button>
+
+          <Button
+            onClick={() =>
+              setView(
+                'external-apply',
+              )
+            }
+          >
+            Ready to apply
+            <ArrowUpRight size={16} />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -10875,38 +10903,23 @@ function ExternalApply({
         state.setSelectedApplication,
     );
 
+  const savedJobs = useCareerStore(
+    (state) => state.savedJobs,
+  );
+
+  const saveJob = useCareerStore(
+    (state) => state.saveJob,
+  );
+
   const [openedOriginal, setOpenedOriginal] =
     useState(false);
 
-  const activeTailoredVersion = (() => {
-    try {
-      const stored =
-        window.localStorage.getItem(
-          ACTIVE_TAILORED_VERSION_KEY,
-        );
-
-      if (!stored) return null;
-
-      const parsed = JSON.parse(
-        stored,
-      ) as {
-        versionId?: string;
-        jobId?: string;
-        name?: string;
-      };
-
-      return parsed.jobId ===
-        currentJob?.id
-        ? parsed
-        : null;
-    } catch {
-      return null;
-    }
-  })();
+  const [confirmed, setConfirmed] =
+    useState(false);
 
   if (!currentJob || !currentAnalysis) {
     return (
-      <div className="detail-page narrow-detail">
+      <div className="detail-page narrow-detail rc-page-enter">
         <BackLink
           onClick={() =>
             setView('apply')
@@ -10959,6 +10972,21 @@ function ExternalApply({
         currentJob.id,
     );
 
+  const savedTailored =
+    window.localStorage.getItem(
+      `roleclear-tailored-${currentJob.id}`,
+    );
+
+  const hasSavedResume =
+    Boolean(savedTailored);
+
+  const isJobSaved =
+    savedJobs.some(
+      (job) =>
+        job.id ===
+        currentJob.id,
+    );
+
   const openOriginal = () => {
     if (!currentJob.url) {
       return;
@@ -10974,15 +11002,15 @@ function ExternalApply({
   };
 
   const confirmApplied = () => {
+    if (!isJobSaved) {
+      saveJob(currentJob);
+    }
+
     if (existing) {
       setSelectedApplication(
         existing.id,
       );
-
-      setView(
-        'application-detail',
-      );
-
+      setConfirmed(true);
       return;
     }
 
@@ -11010,10 +11038,9 @@ function ExternalApply({
         },
       ),
       resumeLabel:
-        activeTailoredVersion?.name ??
-        `Tailored for ${company}`,
-      resumeVersionId:
-        activeTailoredVersion?.versionId,
+        hasSavedResume
+          ? `Tailored for ${company}`
+          : 'Smart Apply resume',
       createdAt:
         now.toISOString(),
     };
@@ -11026,13 +11053,33 @@ function ExternalApply({
       tracked.id,
     );
 
+    setConfirmed(true);
+  };
+
+  const openTrackedApplication = () => {
+    const application =
+      existing ??
+      trackedApplications.find(
+        (item) =>
+          item.jobId ===
+          currentJob.id,
+      );
+
+    if (
+      application
+    ) {
+      setSelectedApplication(
+        application.id,
+      );
+    }
+
     setView(
-      'application-detail',
+      'applications',
     );
   };
 
   return (
-    <div className="detail-page narrow-detail">
+    <div className="detail-page rc-page-enter apply-final-page">
       <BackLink
         onClick={() =>
           setView('resume-tailor')
@@ -11042,214 +11089,208 @@ function ExternalApply({
 
       <PageTitle
         eyebrow="Smart Apply · Step 05"
-        title="Apply"
-        subtitle={`Complete the application on the original site, then confirm it here so RoleClear can start tracking it.`}
+        title="Apply & track"
+        subtitle="Finish the employer application, confirm submission, and RoleClear will add it to your Applications tracker."
       />
 
-      <div className="ready-card">
-        <div
-          className="ready-mark"
-          style={{
-            marginBottom: '12px',
-          }}
-        >
-          <CheckCircle2
-            size={30}
-          />
-        </div>
-
-        <h2
-          style={{
-            marginBottom: '6px',
-          }}
-        >
-          Your application package is ready.
-        </h2>
-
-        <p
-          style={{
-            marginTop: 0,
-          }}
-        >
-          RoleClear does not submit the application for you. It opens the employer's original application page and records the application only after you confirm submission.
-        </p>
-
-        <div className="ready-details">
-          <div>
-            <span>COMPANY</span>
-            <b>{company}</b>
-          </div>
-
-          <div>
-            <span>ROLE</span>
-            <b>{role}</b>
-          </div>
-
-          <div>
-            <span>SOURCE</span>
-            <b>{source}</b>
-          </div>
-
-          <div>
-            <span>RESUME VERSION</span>
-            <b>
-              {activeTailoredVersion?.versionId
-                ? activeTailoredVersion.versionId.slice(0, 8)
-                : 'Current tailored version'}
-            </b>
-          </div>
-
-          <div>
-            <span>RESUME FIT</span>
-            <b>
-              {
-                currentAnalysis.resumeFit
-              }
-              %
-            </b>
-          </div>
-        </div>
-
-        <div
-          className="detail-card"
-          style={{
-            marginTop: '16px',
-            textAlign: 'left',
-          }}
-        >
+      <section className="apply-final-summary">
+        <div>
           <span className="mini-label">
-            BEFORE YOU SUBMIT
+            READY TO APPLY
           </span>
-
-          <div
-            style={{
-              display: 'grid',
-              gap: '9px',
-              marginTop: '10px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                gap: '9px',
-                alignItems: 'flex-start',
-              }}
-            >
-              <Check
-                size={15}
-                style={{
-                  marginTop: '2px',
-                }}
-              />
-              <span>
-                Use the tailored resume you just reviewed.
-              </span>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                gap: '9px',
-                alignItems: 'flex-start',
-              }}
-            >
-              <Check
-                size={15}
-                style={{
-                  marginTop: '2px',
-                }}
-              />
-              <span>
-                Review any employer-specific questions before submission.
-              </span>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                gap: '9px',
-                alignItems: 'flex-start',
-              }}
-            >
-              <Check
-                size={15}
-                style={{
-                  marginTop: '2px',
-                }}
-              />
-              <span>
-                Confirm the application here only after the employer site says it was submitted.
-              </span>
-            </div>
-          </div>
+          <h2>
+            {role}
+          </h2>
+          <p>
+            {company} · {source}
+          </p>
         </div>
 
-        {currentJob.url ? (
-          <Button
-            className="full-button"
-            onClick={
-              openOriginal
-            }
-          >
-            {openedOriginal
-              ? 'Open original site again'
-              : 'Apply on original site'}
-            <ExternalLink
-              size={16}
-            />
-          </Button>
-        ) : (
-          <div
-            className="detail-card"
-            style={{
-              marginTop: '14px',
-            }}
-          >
-            <b>
-              No original application URL is available.
-            </b>
-            <p
-              style={{
-                marginBottom: 0,
-              }}
-            >
-              Return to Smart Apply and import the opportunity from its original job URL.
-            </p>
-          </div>
-        )}
+        <div className="apply-final-score">
+          <span>Resume fit</span>
+          <strong>
+            {currentAnalysis.resumeFit}%
+          </strong>
+        </div>
+      </section>
 
-        <button
-          className="after-apply"
-          onClick={
-            confirmApplied
-          }
+      <div className="apply-final-grid">
+        <section
+          className={`apply-final-step ${
+            hasSavedResume
+              ? 'complete'
+              : ''
+          }`}
         >
-          {existing
-            ? 'Already tracked — open application'
-            : "I've applied — add to tracker"}
-          <ArrowUpRight
-            size={15}
-          />
-        </button>
+          <div className="apply-final-step-number">
+            1
+          </div>
 
-        {!openedOriginal &&
-          !existing && (
-            <small
-              style={{
-                display:
-                  'block',
-                marginTop:
-                  '10px',
-                opacity: 0.62,
-              }}
+          <div className="apply-final-step-copy">
+            <span className="mini-label">
+              RESUME
+            </span>
+            <h3>
+              Finalize your tailored resume
+            </h3>
+            <p>
+              Save the version you want to use for this application and download the Word file from Step 04.
+            </p>
+
+            <div className="apply-final-step-status">
+              {hasSavedResume ? (
+                <>
+                  <CheckCircle2 size={16} />
+                  Tailored version saved
+                </>
+              ) : (
+                <>
+                  <Clock3 size={16} />
+                  Save a tailored version before applying
+                </>
+              )}
+            </div>
+
+            <Button
+              variant="secondary"
+              onClick={() =>
+                setView(
+                  'resume-tailor',
+                )
+              }
             >
-              Open the employer site first. RoleClear will not mark this application as submitted automatically.
-            </small>
-          )}
+              Review resume
+              <ArrowUpRight size={15} />
+            </Button>
+          </div>
+        </section>
+
+        <section
+          className={`apply-final-step ${
+            openedOriginal
+              ? 'complete'
+              : ''
+          }`}
+        >
+          <div className="apply-final-step-number">
+            2
+          </div>
+
+          <div className="apply-final-step-copy">
+            <span className="mini-label">
+              EMPLOYER SITE
+            </span>
+            <h3>
+              Submit the application
+            </h3>
+            <p>
+              RoleClear opens the original employer page. Complete and submit the form there.
+            </p>
+
+            <div className="apply-final-step-status">
+              {openedOriginal ? (
+                <>
+                  <CheckCircle2 size={16} />
+                  Employer site opened
+                </>
+              ) : (
+                <>
+                  <ExternalLink size={16} />
+                  Application page not opened yet
+                </>
+              )}
+            </div>
+
+            {currentJob.url ? (
+              <Button
+                onClick={
+                  openOriginal
+                }
+              >
+                {openedOriginal
+                  ? 'Open site again'
+                  : 'Apply on original site'}
+                <ExternalLink size={15} />
+              </Button>
+            ) : (
+              <div className="apply-final-warning">
+                No original application URL is available for this opportunity.
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section
+          className={`apply-final-step ${
+            confirmed ||
+            existing
+              ? 'complete'
+              : ''
+          }`}
+        >
+          <div className="apply-final-step-number">
+            3
+          </div>
+
+          <div className="apply-final-step-copy">
+            <span className="mini-label">
+              TRACK
+            </span>
+            <h3>
+              Confirm & save to Applications
+            </h3>
+            <p>
+              After the employer site confirms submission, add the application to RoleClear so it can be tracked.
+            </p>
+
+            <div className="apply-final-step-status">
+              {confirmed ||
+              existing ? (
+                <>
+                  <CheckCircle2 size={16} />
+                  Application tracked
+                </>
+              ) : (
+                <>
+                  <BriefcaseBusiness size={16} />
+                  Waiting for your confirmation
+                </>
+              )}
+            </div>
+
+            {confirmed ||
+            existing ? (
+              <Button
+                onClick={
+                  openTrackedApplication
+                }
+              >
+                Open Applications
+                <ArrowUpRight size={15} />
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                onClick={
+                  confirmApplied
+                }
+              >
+                I've applied — save to Applications
+                <Save size={15} />
+              </Button>
+            )}
+          </div>
+        </section>
+      </div>
+
+      <div className="apply-final-note">
+        <ShieldCheck size={16} />
+        RoleClear never submits the employer form automatically. It records the application only after you confirm that you submitted it.
       </div>
     </div>
   );
 }
+
 
 /* =========================================================
    APPLICATION DETAIL
@@ -12783,6 +12824,123 @@ function Notifications({
 }: {
   setView: (view: View) => void;
 }) {
+  const careerInboxEvents =
+    useCareerStore(
+      (state) => state.careerInboxEvents,
+    ) ?? [];
+
+  const markCareerInboxEventRead =
+    useCareerStore(
+      (state) =>
+        state.markCareerInboxEventRead,
+    );
+
+  const setSelectedApplication =
+    useCareerStore(
+      (state) =>
+        state.setSelectedApplication,
+    );
+
+  const notifications = [
+    ...careerInboxEvents,
+  ]
+    .sort(
+      (a, b) =>
+        Date.parse(b.receivedAt) -
+        Date.parse(a.receivedAt),
+    )
+    .slice(0, 30);
+
+  const formatNotificationTime = (
+    value: string,
+  ) => {
+    const parsed = new Date(value);
+
+    if (
+      Number.isNaN(
+        parsed.getTime(),
+      )
+    ) {
+      return 'Recent';
+    }
+
+    const diff =
+      Date.now() -
+      parsed.getTime();
+
+    const minutes =
+      Math.floor(
+        diff / 60000,
+      );
+
+    if (minutes < 1) {
+      return 'Now';
+    }
+
+    if (minutes < 60) {
+      return `${minutes}m ago`;
+    }
+
+    const hours =
+      Math.floor(
+        minutes / 60,
+      );
+
+    if (hours < 24) {
+      return `${hours}h ago`;
+    }
+
+    const days =
+      Math.floor(
+        hours / 24,
+      );
+
+    if (days < 7) {
+      return `${days}d ago`;
+    }
+
+    return parsed.toLocaleDateString(
+      'en-US',
+      {
+        month: 'short',
+        day: 'numeric',
+      },
+    );
+  };
+
+  const priorityFor = (
+    type: string,
+  ) =>
+    ['Interview', 'Offer', 'Rejection'].includes(
+      type,
+    )
+      ? 'Action required'
+      : type === 'Recruiter'
+        ? 'Worth reviewing'
+        : 'Application update';
+
+  const openNotification = (
+    event: (typeof notifications)[number],
+  ) => {
+    markCareerInboxEventRead(
+      event.id,
+    );
+
+    if (
+      event.applicationId
+    ) {
+      setSelectedApplication(
+        event.applicationId,
+      );
+      setView(
+        'application-detail',
+      );
+      return;
+    }
+
+    setView('inbox');
+  };
+
   return (
     <div className="detail-page">
       <BackLink
@@ -12793,59 +12951,255 @@ function Notifications({
       <PageTitle
         eyebrow="Stay informed, not interrupted"
         title="Notifications"
-        subtitle="Only the career events that require your attention."
+        subtitle="Recent application, interview, recruiter and offer signals from Career Inbox."
       />
 
-      <div className="notification-list">
-        <NotificationItem
-          title="Interview update"
-          text="Stripe moved your application forward."
-          time="12 min ago"
-          priority="Action required"
-        />
+      {notifications.length === 0 ? (
+        <div
+          className="detail-card"
+          style={{
+            textAlign: 'center',
+            padding: '42px 24px',
+          }}
+        >
+          <Bell
+            size={26}
+            style={{
+              marginBottom: '12px',
+              opacity: .45,
+            }}
+          />
+          <h3>No notifications yet.</h3>
+          <p>
+            When Career Inbox detects an application update,
+            interview, offer, rejection or recruiter message,
+            it will appear here.
+          </p>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              setView('inbox')
+            }
+          >
+            Open Career Inbox
+          </Button>
+        </div>
+      ) : (
+        <div className="notification-list">
+          {notifications.map(
+            (event) => (
+              <button
+                key={event.id}
+                type="button"
+                className="notification-item"
+                onClick={() =>
+                  openNotification(
+                    event,
+                  )
+                }
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  border: '1px solid rgba(15,23,42,.08)',
+                  cursor: 'pointer',
+                  opacity: event.read ? .72 : 1,
+                }}
+              >
+                <span className="notification-icon">
+                  <Bell size={17} />
+                </span>
 
-        <NotificationItem
-          title="Follow-up reminder"
-          text="Razorpay has been waiting 7 days."
-          time="Yesterday"
-          priority="Action required"
-        />
+                <div>
+                  <span className="mini-label">
+                    {priorityFor(
+                      String(
+                        event.type,
+                      ),
+                    )}
+                  </span>
 
-        <NotificationItem
-          title="Resume insight"
-          text="Docker appears frequently in your target roles."
-          time="Jun 13"
-          priority="Informational"
-        />
-      </div>
+                  <h3>
+                    {event.title ||
+                      'Career update'}
+                  </h3>
+
+                  <p>
+                    {event.snippet ||
+                      event.sender ||
+                      'Open Career Inbox to review this update.'}
+                  </p>
+                </div>
+
+                <small>
+                  {formatNotificationTime(
+                    event.receivedAt,
+                  )}
+                </small>
+              </button>
+            ),
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function NotificationItem({
-  title,
-  text,
-  time,
-  priority,
+function HelpModal({
+  onClose,
 }: {
-  title: string;
-  text: string;
-  time: string;
-  priority: string;
+  onClose: () => void;
 }) {
+  const faqs = [
+    {
+      q: 'What does Smart Apply do?',
+      a: 'It analyzes an external job against your resume, explains fit and gaps, helps tailor your resume truthfully, then sends you to the original employer site to apply.',
+    },
+    {
+      q: 'Does RoleClear apply to jobs for me?',
+      a: 'No. RoleClear does not auto-submit employer forms. You stay in control and apply on the original employer site.',
+    },
+    {
+      q: 'What is Career Inbox?',
+      a: 'Career Inbox reads connected Gmail messages with read-only permission and turns relevant employer emails into application, interview, offer, rejection and recruiter signals.',
+    },
+    {
+      q: 'Is ATS Checker the same as Resume Fit?',
+      a: 'No. ATS Checker evaluates general resume readiness. Resume Fit is job-specific and compares your resume with one role.',
+    },
+    {
+      q: 'Can I disconnect Gmail?',
+      a: 'Yes. Go to Settings → Integrations or Career Inbox → Manage connection.',
+    },
+  ];
+
   return (
-    <div className="notification-item">
-      <span className="notification-icon">
-        <Bell size={17} />
-      </span>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="RoleClear help"
+      onMouseDown={(event) => {
+        if (
+          event.target ===
+          event.currentTarget
+        ) {
+          onClose();
+        }
+      }}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1000,
+        display: 'grid',
+        placeItems: 'center',
+        padding: '24px',
+        background:
+          'rgba(15, 23, 42, .34)',
+        backdropFilter:
+          'blur(5px)',
+      }}
+    >
+      <div
+        style={{
+          width: 'min(620px, 100%)',
+          maxHeight: '82vh',
+          overflowY: 'auto',
+          borderRadius: '18px',
+          background: '#fff',
+          border:
+            '1px solid rgba(15,23,42,.08)',
+          boxShadow:
+            '0 28px 70px rgba(15,23,42,.22)',
+          padding: '22px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent:
+              'space-between',
+            gap: '16px',
+            alignItems:
+              'flex-start',
+            marginBottom: '18px',
+          }}
+        >
+          <div>
+            <span className="mini-label">
+              ROLECLEAR HELP
+            </span>
+            <h2
+              style={{
+                margin:
+                  '5px 0 4px',
+              }}
+            >
+              Quick FAQ
+            </h2>
+            <p
+              style={{
+                margin: 0,
+                opacity: .68,
+              }}
+            >
+              The essentials about how RoleClear works.
+            </p>
+          </div>
 
-      <div>
-        <span className="mini-label">{priority}</span>
-        <h3>{title}</h3>
-        <p>{text}</p>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={onClose}
+            title="Close"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gap: '10px',
+          }}
+        >
+          {faqs.map(
+            (item) => (
+              <details
+                key={item.q}
+                style={{
+                  border:
+                    '1px solid rgba(15,23,42,.08)',
+                  borderRadius:
+                    '12px',
+                  padding:
+                    '12px 14px',
+                  background:
+                    'rgba(248,250,252,.72)',
+                }}
+              >
+                <summary
+                  style={{
+                    cursor:
+                      'pointer',
+                    fontWeight: 700,
+                  }}
+                >
+                  {item.q}
+                </summary>
+                <p
+                  style={{
+                    margin:
+                      '9px 0 0',
+                    lineHeight: 1.55,
+                    opacity: .74,
+                  }}
+                >
+                  {item.a}
+                </p>
+              </details>
+            ),
+          )}
+        </div>
       </div>
-
-      <small>{time}</small>
     </div>
   );
 }
@@ -13063,27 +13417,136 @@ function MobileNav({
 ========================================================= */
 
 export default function App() {
-  const [auth, setAuth] = useState<AuthView>('landing');
-  const [entered, setEntered] = useState(false);
+  useEffect(() => {
+    let link = document.querySelector<HTMLLinkElement>(
+      'link[rel~="icon"]',
+    );
 
-  const handleLogout = () => {
-    setEntered(false);
-    setAuth('landing');
-  };
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
 
-  if (entered) {
-    return <AppShell onLogout={handleLogout} />;
+    link.type = 'image/svg+xml';
+    link.href = '/roleclear-icon.svg';
+  }, []);
+  const [auth, setAuth] =
+    useState<AuthView>('landing');
+
+  const [
+    authReady,
+    setAuthReady,
+  ] = useState(false);
+
+  const [
+    signedIn,
+    setSignedIn,
+  ] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    supabase.auth
+      .getSession()
+      .then(
+        ({ data }) => {
+          if (!mounted) return;
+
+          setSignedIn(
+            Boolean(
+              data.session,
+            ),
+          );
+          setAuthReady(true);
+        },
+      )
+      .catch(() => {
+        if (!mounted) return;
+
+        setSignedIn(false);
+        setAuthReady(true);
+      });
+
+    const {
+      data: {
+        subscription,
+      },
+    } =
+      supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          if (!mounted) return;
+
+          setSignedIn(
+            Boolean(session),
+          );
+
+          if (session) {
+            setAuth('landing');
+          }
+
+          setAuthReady(true);
+        },
+      );
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleLogout =
+    async () => {
+      await supabase.auth.signOut();
+      setSignedIn(false);
+      setAuth('landing');
+    };
+
+  if (!authReady) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'grid',
+          placeItems: 'center',
+          fontFamily:
+            'Inter, system-ui, sans-serif',
+          color: '#0f172a',
+        }}
+      >
+        Loading RoleClear…
+      </div>
+    );
+  }
+
+  if (signedIn) {
+    return (
+      <AppShell
+        onLogout={
+          handleLogout
+        }
+      />
+    );
   }
 
   if (auth === 'landing') {
-    return <Landing onAuth={setAuth} />;
+    return (
+      <Landing
+        onAuth={setAuth}
+      />
+    );
   }
 
   return (
     <Auth
-      mode={auth as 'signin' | 'signup' | 'otp'}
+      mode={
+        auth as
+          | 'signin'
+          | 'signup'
+          | 'otp'
+      }
       onAuth={setAuth}
-      onEnter={() => setEntered(true)}
     />
   );
 }
+

@@ -920,42 +920,6 @@ NUMBER_WORDS = {
 }
 
 
-def _looks_like_education_requirement(
-    text: str,
-) -> bool:
-    """
-    Detect explicit education/enrollment requirements independently of the
-    normalizer's category label.
-    """
-    clean = _clean(text)
-
-    return bool(
-        re.search(
-            r"\b("
-            r"bachelor(?:'s)?"
-            r"|master(?:'s)?"
-            r"|phd"
-            r"|doctorate"
-            r"|b\.?\s*tech"
-            r"|btech"
-            r"|b\.?\s*e\.?"
-            r"|m\.?\s*tech"
-            r"|mtech"
-            r"|degree"
-            r"|undergraduate"
-            r"|graduate school"
-            r"|college/university"
-            r"|university"
-            r"|currently pursuing"
-            r"|working towards"
-            r"|enrolled in"
-            r"|graduating in\s+20\d{2}"
-            r")\b",
-            clean,
-        )
-    )
-
-
 def _education_match(
     requirement: str,
     resume: CanonicalResume,
@@ -982,17 +946,6 @@ def _education_match(
 
     best_score = 0.0
     best_evidence: list[str] = []
-
-    graduation_year_match = re.search(
-        r"\b(?:graduat(?:e|ing)|class\s+of)\s+(?:in\s+)?(20\d{2})\b",
-        req,
-    )
-
-    required_graduation_year = (
-        int(graduation_year_match.group(1))
-        if graduation_year_match
-        else None
-    )
 
     # =====================================================
     # DEGREE LEVEL
@@ -1180,15 +1133,7 @@ def _education_match(
             )
         )
 
-        if requires_master and requires_phd:
-            if candidate_master or candidate_phd:
-                degree_score = 1.0
-            elif candidate_bachelor:
-                degree_score = 0.20
-            else:
-                degree_score = 0.0
-
-        elif requires_phd:
+        if requires_phd:
             if candidate_phd:
                 degree_score = 1.0
             elif candidate_master:
@@ -1199,7 +1144,10 @@ def _education_match(
                 degree_score = 0.0
 
         elif requires_master:
-            if candidate_master or candidate_phd:
+            if (
+                candidate_master
+                or candidate_phd
+            ):
                 degree_score = 1.0
             elif candidate_bachelor:
                 degree_score = 0.20
@@ -1207,7 +1155,11 @@ def _education_match(
                 degree_score = 0.0
 
         elif requires_bachelor:
-            if candidate_bachelor or candidate_master or candidate_phd:
+            if (
+                candidate_bachelor
+                or candidate_master
+                or candidate_phd
+            ):
                 degree_score = 1.0
             else:
                 degree_score = 0.0
@@ -1216,7 +1168,11 @@ def _education_match(
             # Requirement says only "degree" or has no strict level.
             degree_score = (
                 1.0
-                if (candidate_bachelor or candidate_master or candidate_phd)
+                if (
+                    candidate_bachelor
+                    or candidate_master
+                    or candidate_phd
+                )
                 else 0.50
             )
 
@@ -1276,38 +1232,17 @@ def _education_match(
         # =================================================
 
         if required_groups:
-            # For strict advanced-degree requirements, a matching field must
-            # not allow a lower degree level to pass.
-            if (requires_master or requires_phd) and degree_score < 1.0:
-                score = degree_score
-            else:
-                score = (
-                    degree_score * 0.25
-                    + field_score * 0.75
-                )
+            # When the JD explicitly specifies a discipline, field fit is
+            # dominant. Merely having the right degree LEVEL must not make a
+            # CS candidate look eligible for Finance/Accounting, Nursing, Law,
+            # etc.
+            score = (
+                degree_score * 0.25
+                + field_score * 0.75
+            )
 
         else:
             score = degree_score
-
-        if required_graduation_year is not None:
-            candidate_end = _parse_month(
-                item.end_date
-            )
-
-            if candidate_end:
-                candidate_year = candidate_end[0]
-
-                if candidate_year == required_graduation_year:
-                    year_score = 1.0
-                elif abs(candidate_year - required_graduation_year) == 1:
-                    year_score = 0.45
-                else:
-                    year_score = 0.0
-
-                score = (
-                    score * 0.82
-                    + year_score * 0.18
-                )
 
         if score > best_score:
             best_score = score
@@ -1477,7 +1412,14 @@ def _experience_requirement_match(
         )
     )
 
-    duration_score = 0.70
+    # For requirements without an explicit duration, having structured
+    # experience should receive meaningful credit. The old 0.70 baseline was
+    # too conservative for internship/new-grad matching.
+    duration_score = (
+        0.82
+        if resume.experience
+        else 0.0
+    )
 
     if required_months:
         duration_score = min(
@@ -1485,6 +1427,44 @@ def _experience_requirement_match(
             / required_months,
             1.0,
         )
+
+    structural_score = 0.0
+    structural_evidence: list[str] = []
+
+    generic_experience_markers = (
+        "internship",
+        "internships",
+        "multi-person",
+        "team project",
+        "team projects",
+        "open source",
+        "professional experience",
+        "previous experience",
+    )
+
+    if any(
+        marker in req
+        for marker in generic_experience_markers
+    ):
+        if resume.experience:
+            structural_score = max(
+                structural_score,
+                0.90,
+            )
+            structural_evidence.append(
+                f"Structured resume contains {len(resume.experience)} experience entr"
+                + ("y." if len(resume.experience) == 1 else "ies.")
+            )
+
+        if resume.work_samples:
+            structural_score = max(
+                structural_score,
+                0.78,
+            )
+            structural_evidence.append(
+                f"Structured resume contains {len(resume.work_samples)} project/work sample"
+                + (". " if len(resume.work_samples) == 1 else "s.")
+            )
 
     semantic_score, hits = (
         _continuous_similarity(
@@ -1495,31 +1475,29 @@ def _experience_requirement_match(
         )
     )
 
-    # Do not claim full years when dates overlap. Semantic evidence can still
-    # show that the candidate genuinely programs.
-    score = (
-        duration_score * 0.40
-        + semantic_score * 0.60
-    )
-
-    # A quantified duration requirement is only fully satisfied when the
-    # structured resume dates meet the requested duration. Strong semantic
-    # evidence can show relevant experience, but it must not turn a duration
-    # shortfall into a full requirement match.
-    if (
-        required_months
-        and relevant_months < required_months
-    ):
-        score = min(
-            score,
-            0.54,
+    # Do not claim full years when dates overlap. For generic internship /
+    # project requirements, structured experience is itself strong evidence.
+    if structural_score > 0:
+        score = max(
+            (
+                duration_score * 0.25
+                + semantic_score * 0.45
+                + structural_score * 0.30
+            ),
+            structural_score * 0.52,
+        )
+    else:
+        score = (
+            duration_score * 0.40
+            + semantic_score * 0.60
         )
 
     evidence = [
         (
             "Unique relevant structured experience: "
             f"{relevant_months} months."
-        )
+        ),
+        *structural_evidence,
     ]
 
     if hits:
@@ -1603,6 +1581,59 @@ def _competency_requirement_match(
         ),
     )
 
+    # Broad technology-family synonym support for AI-tool requirements.
+    # This is intentionally generic (not company-specific).
+    requirement_clean = _clean(
+        requirement
+    )
+    resume_clean = _clean(
+        resume_text
+    )
+
+    ai_requirement_markers = (
+        "ai",
+        "artificial intelligence",
+        "generative ai",
+        "genai",
+        "llm",
+        "large language model",
+    )
+
+    ai_resume_markers = (
+        "ai",
+        "artificial intelligence",
+        "generative ai",
+        "genai",
+        "llm",
+        "gemini",
+        "openai",
+        "machine learning",
+        "language model",
+    )
+
+    if (
+        any(
+            _contains_phrase(
+                requirement_clean,
+                marker,
+            )
+            for marker
+            in ai_requirement_markers
+        )
+        and any(
+            _contains_phrase(
+                resume_clean,
+                marker,
+            )
+            for marker
+            in ai_resume_markers
+        )
+    ):
+        score = max(
+            score,
+            0.60,
+        )
+
     evidence: list[str] = []
 
     if concept_hits:
@@ -1633,29 +1664,6 @@ def _competency_requirement_match(
             evidence.append(
                 item.source_text
             )
-
-    target_concepts = _target_concepts(
-        requirement
-    )
-
-    target_actions = _action_roots(
-        requirement
-    )
-
-    lexical_overlap = len(
-        _tokens(requirement)
-        & _tokens(resume_text)
-    )
-
-    if (
-        not target_concepts
-        and not target_actions
-        and lexical_overlap <= 1
-    ):
-        score = min(
-            score,
-            0.49,
-        )
 
     return (
         min(
@@ -1689,15 +1697,29 @@ def _match_requirement(
         evidence = semester_evidence
 
     elif (
-        requirement.category == "education"
-        or (
-            requirement.category == "eligibility"
-            and _looks_like_education_requirement(
-                text
+        requirement.category
+        == "education"
+    ):
+        score, evidence = (
+            _education_match(
+                text,
+                resume,
             )
         )
-        or _looks_like_education_requirement(
-            text
+
+    elif (
+        requirement.category
+        == "eligibility"
+        and any(
+            marker in _clean(
+                text
+            )
+            for marker in (
+                "bachelor",
+                "master",
+                "degree",
+                "currently pursuing",
+            )
         )
     ):
         score, evidence = (
@@ -1726,16 +1748,21 @@ def _match_requirement(
             )
         )
 
+    # Consumer-facing matching should not require research-grade evidence
+    # confidence before giving credit. Strong evidence is still exposed in
+    # explanations, but moderate semantic/keyword alignment counts toward fit.
     threshold = (
-        0.55
+        0.42
         if requirement.level
         == "required"
-        else 0.50
+        else 0.38
     )
 
     return RequirementMatch(
-        requirement=
-            requirement.name,
+        requirement=(
+            requirement.source_text
+            or requirement.name
+        ),
         level=
             requirement.level,
         category=
@@ -2568,61 +2595,307 @@ def _required_eligibility_score(
 
 
 # =========================================================
-# ADAPTIVE WEIGHTS
+# MARKET-STYLE HYBRID FIT
 # =========================================================
 
-def _weights(
+def _soft_requirement_score(
+    raw_score: float,
+) -> float:
+    """
+    Convert the internal 0..1 evidence score into a consumer-facing
+    requirement-alignment score.
+
+    Internal evidence ranking is intentionally conservative. Resume-match
+    products generally give partial credit for related skills, projects and
+    adjacent experience rather than turning every non-exact match into zero.
+    """
+    raw_value = float(raw_score)
+
+    # RequirementMatch.score is exposed as 0..100. Normalize here so this
+    # calibration function operates on 0..1 and does not saturate every
+    # non-zero requirement at 100.
+    if raw_value > 1.0:
+        raw_value /= 100.0
+
+    raw = max(
+        0.0,
+        min(
+            raw_value,
+            1.0,
+        ),
+    )
+
+    if raw < 0.08:
+        return 5.0
+
+    if raw < 0.20:
+        return 25.0 + raw * 80.0
+
+    # 0.20 -> 48, 0.40 -> 64, 0.60 -> 80, 0.80 -> 96
+    return min(
+        100.0,
+        32.0 + raw * 80.0,
+    )
+
+
+def _required_alignment_score(
+    requirement_matches: list[RequirementMatch],
+) -> float:
+    rows = [
+        row
+        for row in requirement_matches
+        if row.level == "required"
+    ]
+
+    if not rows:
+        return 0.0
+
+    return round(
+        sum(
+            _soft_requirement_score(
+                row.score
+            )
+            for row in rows
+        )
+        / len(rows),
+        2,
+    )
+
+
+def _preferred_alignment_score(
+    requirement_matches: list[RequirementMatch],
+) -> float:
+    rows = [
+        row
+        for row in requirement_matches
+        if row.level == "preferred"
+    ]
+
+    if not rows:
+        return 0.0
+
+    return round(
+        sum(
+            _soft_requirement_score(
+                row.score
+            )
+            for row in rows
+        )
+        / len(rows),
+        2,
+    )
+
+
+def _concept_coverage_score(
+    job: CanonicalJob,
+    resume: CanonicalResume,
+) -> float:
+    """
+    ATS-style keyword/concept coverage.
+
+    This deliberately uses normalized concepts rather than requiring an
+    exact sentence-level evidence match.
+    """
+    target_parts = [
+        job.title or "",
+        *[
+            requirement.source_text
+            or requirement.name
+            for requirement
+            in job.requirements
+        ],
+        *job.responsibilities,
+    ]
+
+    target_concepts = set(
+        _concepts_in_text(
+            " ".join(
+                target_parts
+            )
+        )
+    )
+
+    resume_concepts = set(
+        _concepts_in_text(
+            _resume_full_text(
+                resume
+            )
+        )
+    )
+
+    if not target_concepts:
+        return 0.0
+
+    overlap = (
+        target_concepts
+        & resume_concepts
+    )
+
+    return round(
+        min(
+            100.0,
+            (
+                len(overlap)
+                / len(target_concepts)
+            )
+            * 100.0,
+        ),
+        2,
+    )
+
+
+def _consumer_experience_score(
+    raw_score: float,
     *,
-    has_capabilities: bool,
+    has_experience: bool,
+) -> float:
+    if not has_experience:
+        return 0.0
+
+    # Give useful partial credit for internships/projects that are clearly
+    # related even when the wording is not identical to the JD.
+    return round(
+        min(
+            100.0,
+            18.0
+            + max(
+                0.0,
+                raw_score,
+            )
+            * 1.05,
+        ),
+        2,
+    )
+
+
+def _consumer_responsibility_score(
+    raw_score: float,
+    *,
+    has_responsibilities: bool,
+) -> float:
+    if not has_responsibilities:
+        return 0.0
+
+    return round(
+        min(
+            100.0,
+            15.0
+            + max(
+                0.0,
+                raw_score,
+            )
+            * 1.10,
+        ),
+        2,
+    )
+
+
+def _hybrid_fit_score(
+    *,
+    concept_score: float,
+    required_alignment: float,
+    capability_score: float,
+    experience_score: float,
+    responsibility_score: float,
+    eligibility_score: float,
+    preferred_score: float,
     has_experience: bool,
     has_responsibilities: bool,
     has_eligibility: bool,
     has_preferred: bool,
-) -> dict[str, float]:
-    base = {
-        "capabilities": (
-            0.35
-            if has_capabilities
-            else 0.0
+) -> tuple[float, dict[str, float]]:
+    """
+    Candidate-facing Resume Fit V2.
+
+    Main score is intentionally broader than the strict evidence ranker:
+      - 30% normalized keyword/concept coverage
+      - 25% required requirement alignment
+      - 15% experience alignment
+      - 10% responsibility alignment
+      - 10% eligibility
+      - 5% preferred qualifications
+      - 5% strict semantic capability signal
+
+    Missing buckets are re-normalized rather than scored as zero.
+    """
+    components = {
+        "concepts": (
+            concept_score,
+            0.30,
+            True,
+        ),
+        "required": (
+            required_alignment,
+            0.30,
+            True,
         ),
         "experience": (
-            0.25
-            if has_experience
-            else 0.0
+            experience_score,
+            0.17,
+            has_experience,
         ),
         "responsibilities": (
-            0.20
-            if has_responsibilities
-            else 0.0
+            responsibility_score,
+            0.05,
+            has_responsibilities,
         ),
         "eligibility": (
-            0.15
-            if has_eligibility
-            else 0.0
+            eligibility_score,
+            0.10,
+            has_eligibility,
         ),
         "preferred": (
-            0.05
-            if has_preferred
-            else 0.0
+            preferred_score,
+            0.05,
+            has_preferred,
+        ),
+        "semantic": (
+            capability_score,
+            0.05,
+            True,
         ),
     }
 
-    total = sum(
-        base.values()
+    active_weight = sum(
+        weight
+        for _, weight, active
+        in components.values()
+        if active
     )
 
-    if total == 0:
-        return {
-            key: 0.0
-            for key
-            in base
-        }
+    if active_weight <= 0:
+        return 0.0, {}
 
-    return {
-        key: value / total
+    weighted = sum(
+        score * weight
+        for score, weight, active
+        in components.values()
+        if active
+    ) / active_weight
+
+    debug = {
+        key: round(
+            value[0],
+            2,
+        )
         for key, value
-        in base.items()
+        in components.items()
+        if value[2]
     }
+
+    return (
+        round(
+            max(
+                0.0,
+                min(
+                    weighted,
+                    100.0,
+                ),
+            ),
+            2,
+        ),
+        debug,
+    )
 
 
 # =========================================================
@@ -2739,43 +3012,105 @@ def match_resume_to_job(
         in job.requirements
     )
 
-    weights = _weights(
-        has_capabilities=bool(
-            required_capability_requirements
-        ),
-        has_experience=bool(
-            resume.experience
-        ),
-        has_responsibilities=bool(
-            job.responsibilities
-        ),
-        has_eligibility=
-            has_eligibility,
-        has_preferred=bool(
-            preferred_requirements
-        ),
+    # -----------------------------------------------------
+    # Resume Fit V2
+    # -----------------------------------------------------
+    # Keep the strict evidence matcher for explanations, but use a broader
+    # ATS-style hybrid score for the headline percentage.
+    concept_score = _concept_coverage_score(
+        job,
+        resume,
     )
 
-    total = (
-        capability_score
-        * weights["capabilities"]
-        + experience_score
-        * weights["experience"]
-        + responsibility_score
-        * weights["responsibilities"]
-        + eligibility_score
-        * weights["eligibility"]
-        + preferred_score
-        * weights["preferred"]
+    required_alignment = (
+        _required_alignment_score(
+            requirement_matches
+        )
     )
 
-    # Hard eligibility mismatch matters, but a parser uncertainty should not
-    # annihilate an otherwise relevant candidate.
-    if (
-        has_eligibility
-        and eligibility_score < 35
-    ):
-        total *= 0.90
+    preferred_alignment = (
+        _preferred_alignment_score(
+            requirement_matches
+        )
+        if preferred_requirements
+        else 0.0
+    )
+
+    market_experience_score = (
+        _consumer_experience_score(
+            experience_score,
+            has_experience=bool(
+                resume.experience
+            ),
+        )
+    )
+
+    market_responsibility_score = (
+        _consumer_responsibility_score(
+            responsibility_score,
+            has_responsibilities=bool(
+                job.responsibilities
+            ),
+        )
+    )
+
+    # Preferred score from the old helper is still retained for backward
+    # compatibility, but the headline fit uses the softened requirement view.
+    market_preferred_score = (
+        preferred_alignment
+        if preferred_requirements
+        else 0.0
+    )
+
+    total, _fit_components = (
+        _hybrid_fit_score(
+            concept_score=
+                concept_score,
+            required_alignment=
+                required_alignment,
+            capability_score=
+                capability_score,
+            experience_score=
+                market_experience_score,
+            responsibility_score=
+                market_responsibility_score,
+            eligibility_score=
+                eligibility_score,
+            preferred_score=
+                market_preferred_score,
+            has_experience=bool(
+                resume.experience
+            ),
+            has_responsibilities=bool(
+                job.responsibilities
+            ),
+            has_eligibility=
+                has_eligibility,
+            has_preferred=bool(
+                preferred_requirements
+            ),
+        )
+    )
+
+    # Consumer-facing breakdown should use the same scale as the headline
+    # score. Keep the categories the frontend already expects.
+    capability_score = round(
+        (
+            concept_score * 0.45
+            + required_alignment * 0.40
+            + capability_score * 0.15
+        ),
+        2,
+    )
+    experience_score = (
+        market_experience_score
+    )
+    responsibility_score = (
+        market_responsibility_score
+    )
+    preferred_score = (
+        market_preferred_score
+    )
 
     matched_required = [
         row.requirement
@@ -2823,91 +3158,54 @@ def match_resume_to_job(
 
     explanation: list[str] = []
 
-    required_rows = [
-        row
-        for row in requirement_matches
-        if row.level == "required"
-    ]
-
-    if required_rows:
+    if matched_required:
         explanation.append(
-            f"{len(matched_required)} of "
-            f"{len(required_rows)} required requirements "
-            "have strong supporting evidence."
+            "Matched required evidence: "
+            + ", ".join(
+                matched_required[:5]
+            )
         )
 
-    partial_experience = False
+    if missing_required:
+        explanation.append(
+            "Missing or weak evidence for: "
+            + ", ".join(
+                missing_required[:5]
+            )
+        )
 
     if (
         job.minimum_experience_months
         is not None
     ):
-        experience_requirement_text = next(
-            (
-                requirement.source_text
-                for requirement
-                in job.requirements
-                if requirement.category
-                == "experience"
-            ),
-            None,
-        )
-
         relevant_months = (
             _unique_experience_months(
                 resume,
-                relevant_to=
-                    experience_requirement_text,
+                relevant_to=(
+                    next(
+                        (
+                            requirement.source_text
+                            for requirement
+                            in job.requirements
+                            if requirement.category
+                            == "experience"
+                        ),
+                        None,
+                    )
+                ),
             )
         )
 
-        if (
-            relevant_months
-            < job.minimum_experience_months
-        ):
-            partial_experience = True
-
-            explanation.append(
-                "Experience requirement is partially satisfied: "
-                f"{relevant_months} of "
-                f"{job.minimum_experience_months} "
-                "required months were verified from structured dates."
-            )
-
-        else:
-            explanation.append(
-                "Experience duration requirement is satisfied: "
-                f"{relevant_months} verified relevant months "
-                f"against {job.minimum_experience_months} required."
-            )
-
-    unsupported_required = [
-        row.requirement
-        for row in requirement_matches
-        if (
-            row.level == "required"
-            and not row.matched
-            and not (
-                partial_experience
-                and row.category == "experience"
-            )
-        )
-    ]
-
-    if unsupported_required:
         explanation.append(
-            f"{len(unsupported_required)} required requirement"
-            + (
-                " has"
-                if len(unsupported_required) == 1
-                else "s have"
-            )
-            + " weak or missing resume evidence."
+            "Detected experience requirement: "
+            f"{job.minimum_experience_months} months; "
+            f"unique relevant structured experience: "
+            f"{relevant_months} months."
         )
 
     if has_eligibility:
         explanation.append(
-            "Eligibility alignment is "
+            "Eligibility alignment: "
             f"{round(eligibility_score)}%."
         )
 

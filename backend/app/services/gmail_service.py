@@ -178,17 +178,12 @@ async def exchange_code(
         )
 
     token = response.json()
-    previous = _read_tokens() or {}
 
-    # Google may omit refresh_token on later grants; retain the old one.
-    if (
-        not token.get("refresh_token")
-        and previous.get("refresh_token")
-    ):
-        token["refresh_token"] = (
-            previous["refresh_token"]
-        )
-
+    # A valid Gmail OAuth connection does not require a refresh token for the
+    # initial session. Google can omit refresh_token even when offline access
+    # was requested (for example on repeat consent grants). Keep the access
+    # token and allow immediate sync. If it later expires and no refresh token
+    # exists, get_access_token() will ask the user to reconnect.
     token["obtained_at"] = int(
         time.time()
     )
@@ -206,6 +201,7 @@ async def _refresh_access_token(
     )
 
     if not refresh_token:
+        disconnect()
         raise GmailAuthError(
             "Gmail access expired and no refresh token is available. Reconnect Gmail."
         )
@@ -228,8 +224,31 @@ async def _refresh_access_token(
         )
 
     if response.status_code >= 400:
+        # A rejected refresh token is not recoverable locally.
+        disconnect()
+
+        detail = ""
+        try:
+            payload = response.json()
+            detail = str(
+                payload.get(
+                    "error_description"
+                )
+                or payload.get("error")
+                or ""
+            )
+        except Exception:
+            detail = ""
+
+        suffix = (
+            f" Google said: {detail}"
+            if detail
+            else ""
+        )
+
         raise GmailAuthError(
             "Could not refresh Gmail access. Reconnect Gmail."
+            + suffix
         )
 
     refreshed = response.json()
@@ -297,6 +316,7 @@ async def _gmail_get(
     path: str,
     *,
     params: dict[str, Any] | None = None,
+    _retry_after_refresh: bool = True,
 ) -> dict[str, Any]:
     access_token = await get_access_token()
 
@@ -312,21 +332,63 @@ async def _gmail_get(
             },
         )
 
-    if response.status_code == 401:
+    if (
+        response.status_code == 401
+        and _retry_after_refresh
+    ):
         token = _read_tokens()
 
         if token:
             await _refresh_access_token(
                 token
             )
+
+            # Retry exactly once. The previous recursive implementation could
+            # keep refreshing/retrying for a long time on a persistently bad
+            # token, which is why sync appeared to hang for 1–2 minutes.
             return await _gmail_get(
                 path,
                 params=params,
+                _retry_after_refresh=False,
             )
 
+    if response.status_code == 401:
+        disconnect()
+        raise GmailAuthError(
+            "Google rejected the Gmail access token after refresh. Reconnect Gmail and approve Gmail read access again."
+        )
+
     if response.status_code >= 400:
+        detail = ""
+        try:
+            payload = response.json()
+            error = payload.get(
+                "error",
+                {}
+            )
+
+            if isinstance(
+                error,
+                dict,
+            ):
+                detail = str(
+                    error.get(
+                        "message"
+                    )
+                    or ""
+                )
+        except Exception:
+            detail = ""
+
+        suffix = (
+            f" Google said: {detail}"
+            if detail
+            else ""
+        )
+
         raise GmailAuthError(
             f"Gmail API request failed with HTTP {response.status_code}."
+            + suffix
         )
 
     return response.json()
@@ -1010,44 +1072,25 @@ async def sync_career_messages(
     - Direct recruiter/application conversations can still pass.
     """
 
-    # The Gmail query is only stage 1. Keep enough candidate messages to
-    # catch ATS confirmations and direct recruiter replies, while removing
-    # obvious promotions/social/spam/trash categories.
+    # Stage 1 intentionally stays simple. Gmail's API search parser can
+    # reject complex grouped negative-from expressions even when OAuth is
+    # perfectly valid. We therefore fetch recent non-junk mail broadly and
+    # apply the career/source filtering locally below.
     search = (
         f"newer_than:{newer_than_days}d "
         "-category:promotions "
         "-category:social "
         "-category:forums "
         "-label:spam "
-        "-label:trash "
-        "-from:(unstop.com internshala.com propeers.in naukri.com indeed.com linkedin.com foundit.in) "
-        "{"
-        "\"thank you for applying\" "
-        "\"application received\" "
-        "\"application submitted\" "
-        "\"your application\" "
-        "\"application for\" "
-        "\"interview\" "
-        "\"assessment\" "
-        "\"screening\" "
-        "\"shortlisted\" "
-        "\"next round\" "
-        "\"offer letter\" "
-        "\"not moving forward\" "
-        "\"talent acquisition\" "
-        "\"hiring team\" "
-        "\"recruiter\""
-        "}"
+        "-label:trash"
     )
 
-    # Fetch more candidates than the final max because local filtering
-    # deliberately discards noisy results.
     candidate_limit = min(
         max(
-            max_results * 4,
-            80,
+            max_results * 3,
+            75,
         ),
-        300,
+        180,
     )
 
     listing = await _gmail_get(
@@ -1159,4 +1202,3 @@ async def sync_career_messages(
         messages.append(item)
 
     return messages
-
