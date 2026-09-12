@@ -163,3 +163,1612 @@ h1 em,h2 em,.hero h1 em{color:var(--brand-dark)}
 .product-panel:nth-child(1)::before,.product-panel:nth-child(3)::before{content:'';position:absolute;width:90px;height:90px;border-radius:22px;transform:rotate(14deg);right:28px;top:55px;background:#fff0e5;border:1px solid #fed7aa}
 .product-panel:nth-child(2)::before{content:'';position:absolute;width:80px;height:80px;border-radius:50%;right:35px;top:62px;background:#e8f1ff;border:1px solid #bfdbfe}
 .product-panel:nth-child(4)::before{content:'';position:absolute;width:74px;height:74px;border-radius:12px;right:38px;top:62px;background:#feecec;border:1px solid #fecaca;transform:rotate(-12deg)}
+
+/* =========================================================
+   ROLECLEAR UI ALIGNMENT FIXES
+   ========================================================= */
+
+
+/* ---------------------------------------------------------
+   1. APPLICATION TRACKER HEADER + TOOLBAR
+   --------------------------------------------------------- */
+
+.page-title {
+  position: relative;
+  width: 100%;
+}
+
+.page-title > div:first-child {
+  min-width: 0;
+}
+
+.page-title h1 {
+  margin-bottom: 8px;
+}
+
+.page-title p {
+  margin-top: 0;
+}
+
+
+/*
+  The previous toolbar positioning is overlapping
+  the PageTitle section. Force it back into normal flow.
+*/
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  width: 100%;
+
+  margin-top: 24px !important;
+  margin-bottom: 30px;
+
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+
+  transform: none !important;
+}
+
+
+/* Search stays on the left */
+
+.toolbar-search {
+  position: relative;
+
+  flex: 0 1 360px;
+  max-width: 420px;
+
+  margin-right: auto;
+}
+
+.toolbar-search input {
+  width: 100%;
+  height: 48px;
+
+  box-sizing: border-box;
+
+  padding-left: 44px;
+  padding-right: 16px;
+}
+
+
+/* Center search icon correctly */
+
+.toolbar-search svg {
+  position: absolute;
+
+  left: 15px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  pointer-events: none;
+}
+
+
+/* Keep filter controls aligned */
+
+.toolbar > .button {
+  min-height: 48px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  white-space: nowrap;
+}
+
+
+/* ---------------------------------------------------------
+   2. RESUME HEALTH SCORE
+   --------------------------------------------------------- */
+
+.health-score {
+  display: flex;
+  align-items: center;
+
+  gap: 18px;
+
+  width: 100%;
+}
+
+
+/* Keep score circle from shrinking */
+
+.health-ring {
+  width: 76px;
+  height: 76px;
+
+  min-width: 76px;
+  min-height: 76px;
+
+  flex-shrink: 0;
+
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: center !important;
+
+  gap: 2px;
+
+  position: relative;
+}
+
+
+/*
+  Prevent inherited absolute positioning / transforms
+  from making 88 and /100 overlap.
+*/
+
+.health-ring strong,
+.health-ring span {
+  position: static !important;
+
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+
+  transform: none !important;
+
+  margin: 0 !important;
+}
+
+
+.health-ring strong {
+  font-size: 25px;
+  font-weight: 650;
+
+  line-height: 1;
+}
+
+
+.health-ring span {
+  font-size: 10px;
+  font-weight: 500;
+
+  line-height: 1;
+
+  opacity: 0.75;
+}
+
+
+/* Resume-health text beside the circle */
+
+.health-score > div:last-child {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  gap: 5px;
+}
+
+
+.health-score > div:last-child b {
+  display: block;
+
+  margin: 0;
+
+  line-height: 1.25;
+}
+
+
+.health-score > div:last-child p {
+  margin: 0;
+
+  line-height: 1.45;
+}
+
+
+/* ---------------------------------------------------------
+   3. RESUME HEALTH CARD SPACING
+   --------------------------------------------------------- */
+
+.resume-health .aside-head {
+  margin-bottom: 22px;
+}
+
+.resume-health .health-score {
+  margin-bottom: 18px;
+}
+
+.resume-health .health-bar {
+  margin-top: 0;
+}
+
+
+/* ---------------------------------------------------------
+   4. RESPONSIVE APPLICATION TOOLBAR
+   --------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .toolbar {
+    flex-wrap: wrap;
+  }
+
+  .toolbar-search {
+    flex: 1 1 100%;
+    max-width: none;
+
+    margin-right: 0;
+  }
+}
+
+
+@media (max-width: 600px) {
+  .toolbar {
+    gap: 10px;
+    margin-top: 20px !important;
+  }
+
+  .toolbar > .button {
+    flex: 1;
+  }
+
+  .health-score {
+    gap: 14px;
+  }
+
+  .health-ring {
+    width: 70px;
+    height: 70px;
+
+    min-width: 70px;
+    min-height: 70px;
+  }
+}
+/* =========================================================
+   DASHBOARD FINAL CLEANUP
+========================================================= */
+
+.simple-health {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin: 20px 0 18px;
+}
+
+.simple-health > strong {
+  display: block;
+  min-width: 105px;
+  margin: 0;
+
+  font-size: 27px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.7px;
+
+  color: #111111;
+
+  position: static !important;
+  transform: none !important;
+}
+
+.simple-health > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.simple-health > div b {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.simple-health > div p {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: #87918b;
+}
+
+/* Remove any old resume score ring completely */
+
+.resume-health .health-ring,
+.resume-health .health-ring-value {
+  display: none !important;
+}
+
+/* Recent applications — no company letter/icon */
+
+.application-row .no-company-logo {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.application-row .no-company-logo > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+}
+
+.application-row .no-company-logo b {
+  margin: 0;
+  line-height: 1.3;
+}
+
+.application-row .no-company-logo span {
+  margin: 0;
+  line-height: 1.35;
+}
+
+/* ROLECLEAR_FORMATTING_PASS_START */
+/* =========================================================
+   ROLECLEAR — COMPLETED CORE PAGES FORMATTING PASS
+   Smart Apply · ATS Checker · Application Tracker
+   Visual-only overrides. No feature/business logic changes.
+   ========================================================= */
+
+:root {
+  --rc-page-gap: 34px;
+  --rc-card-pad: 26px;
+  --rc-card-radius: 10px;
+  --rc-soft-shadow: 0 8px 26px rgba(20, 32, 27, 0.035);
+}
+
+/* ---------- Shared page rhythm ---------- */
+
+.app-content {
+  line-height: 1.55;
+}
+
+.page-title {
+  gap: 32px;
+  align-items: flex-end;
+  margin-bottom: 34px;
+}
+
+.page-title > div:first-child {
+  max-width: 760px;
+}
+
+.page-title .section-kicker {
+  display: block;
+  margin-bottom: 11px;
+  line-height: 1.25;
+}
+
+.page-title h1 {
+  margin: 0 0 11px !important;
+  line-height: 1.08;
+  letter-spacing: -0.045em;
+}
+
+.page-title p {
+  max-width: 690px;
+  margin: 0 !important;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.page-title > .button,
+.page-title > div:last-child:not(:first-child) {
+  flex: none;
+}
+
+.section-row {
+  gap: 18px;
+}
+
+.section-row h2,
+.section-row h3 {
+  margin-top: 0;
+}
+
+.detail-card {
+  border-radius: var(--rc-card-radius);
+  box-shadow: var(--rc-soft-shadow);
+}
+
+.detail-card > :first-child {
+  margin-top: 0;
+}
+
+.detail-card > :last-child {
+  margin-bottom: 0;
+}
+
+.detail-card h2 {
+  margin: 10px 0 8px;
+  line-height: 1.2;
+}
+
+.detail-card h3 {
+  margin: 8px 0 14px;
+  line-height: 1.3;
+}
+
+.detail-card p {
+  margin: 7px 0 0;
+  line-height: 1.65;
+}
+
+.button {
+  gap: 8px;
+}
+
+/* =========================================================
+   SMART APPLY
+   ========================================================= */
+
+.apply-page {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.apply-page .page-title {
+  margin-bottom: 31px;
+}
+
+.apply-layout {
+  gap: 24px;
+  align-items: start;
+}
+
+.apply-card {
+  padding: 29px 30px 30px;
+  border-radius: var(--rc-card-radius);
+  box-shadow: var(--rc-soft-shadow);
+}
+
+.apply-tabs {
+  gap: 27px;
+  margin-bottom: 27px;
+  padding-bottom: 1px;
+}
+
+.apply-tabs button {
+  padding: 0 0 12px;
+  line-height: 1.35;
+}
+
+.url-input-wrap {
+  min-height: 54px;
+  margin-top: 2px;
+}
+
+.url-input-wrap input {
+  font-size: 13px;
+}
+
+.job-textarea {
+  min-height: 170px;
+  padding: 17px 18px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+
+.drop-zone {
+  padding: 26px 22px;
+  border-radius: 9px;
+}
+
+.apply-note {
+  margin: 17px 0 0;
+  line-height: 1.6;
+}
+
+.analyze-button {
+  min-height: 48px;
+  margin-top: 22px;
+}
+
+.apply-side {
+  display: grid;
+  gap: 16px;
+}
+
+.workflow-card,
+.why-card {
+  border-radius: var(--rc-card-radius);
+  padding: 24px;
+}
+
+.workflow-card h3,
+.why-card h3 {
+  margin: 9px 0 14px;
+  line-height: 1.3;
+}
+
+.workflow-card p,
+.why-card p {
+  line-height: 1.6;
+}
+
+.workflow-steps {
+  margin-top: 18px;
+}
+
+.workflow-steps > * {
+  line-height: 1.45;
+}
+
+.recent-opportunities {
+  margin-top: 38px;
+}
+
+.recent-opportunities .section-row {
+  margin-bottom: 16px;
+}
+
+/* =========================================================
+   APPLICATION TRACKER
+   ========================================================= */
+
+.toolbar {
+  min-height: 50px;
+  gap: 12px;
+  margin-top: 0 !important;
+  margin-bottom: 27px !important;
+}
+
+.toolbar-search {
+  flex: 1 1 390px;
+  max-width: 520px;
+}
+
+.toolbar-search input {
+  min-height: 48px;
+  border-radius: 9px;
+  font-size: 12.5px;
+}
+
+.toolbar select {
+  min-height: 48px !important;
+  border-radius: 9px !important;
+  padding: 0 38px 0 14px !important;
+  font-size: 12px;
+}
+
+.toolbar > .button {
+  min-height: 48px;
+  white-space: nowrap;
+}
+
+.kanban {
+  gap: 15px;
+  align-items: start;
+  padding: 2px 1px 12px;
+}
+
+.kanban-column {
+  border-radius: 10px;
+  padding: 14px;
+  min-height: 280px;
+}
+
+.kanban-heading {
+  min-height: 34px;
+  gap: 10px;
+  margin-bottom: 13px;
+  padding: 0 2px;
+}
+
+.kanban-heading > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.kanban-heading h3,
+.kanban-heading b {
+  margin: 0;
+  line-height: 1.25;
+}
+
+.kanban-items {
+  display: grid;
+  gap: 10px;
+}
+
+.application-card {
+  min-height: 132px;
+  padding: 16px 16px 14px;
+  border-radius: 9px;
+  box-shadow: 0 4px 14px rgba(20, 32, 27, 0.025);
+}
+
+.application-card > div:first-child {
+  gap: 10px;
+  margin-bottom: 11px;
+}
+
+.application-card h3,
+.application-card h4 {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.application-card p {
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+
+.application-card small {
+  line-height: 1.4;
+}
+
+.application-card .button {
+  min-height: 34px;
+}
+
+.empty-column {
+  padding: 24px 12px;
+  line-height: 1.5;
+}
+
+/* Empty tracker state */
+.toolbar + .detail-card,
+.page-title + .toolbar + .detail-card {
+  border-radius: 10px;
+}
+
+.page-title + .toolbar + .detail-card h2 {
+  margin: 10px 0 7px;
+}
+
+.page-title + .toolbar + .detail-card p {
+  max-width: 620px;
+  margin: 0 auto 18px;
+}
+
+/* =========================================================
+   ATS CHECKER
+   ========================================================= */
+
+.ats-top-grid {
+  gap: 18px !important;
+  margin-bottom: 25px !important;
+}
+
+.ats-top-grid > .detail-card {
+  padding: 24px 25px !important;
+  min-height: 184px !important;
+}
+
+.ats-top-grid .file-icon {
+  flex: none;
+}
+
+.ats-top-grid h3 {
+  margin: 0 !important;
+  line-height: 1.25;
+}
+
+.ats-top-grid p {
+  margin-top: 5px !important;
+  line-height: 1.5;
+}
+
+.ats-top-grid strong {
+  letter-spacing: -0.025em;
+}
+
+.resume-detail-grid {
+  gap: 20px;
+  align-items: start;
+}
+
+.resume-detail-grid > * {
+  min-width: 0;
+}
+
+.resume-detail-grid .detail-card {
+  padding: 25px;
+}
+
+.resume-detail-grid .section-row {
+  margin-bottom: 17px;
+  align-items: flex-start;
+}
+
+.resume-detail-grid .section-row h2,
+.resume-detail-grid .section-row h3 {
+  margin-bottom: 0;
+}
+
+.plain-list {
+  margin-top: 14px;
+}
+
+.plain-list li {
+  padding: 10px 0;
+  line-height: 1.55;
+}
+
+.version-grid {
+  gap: 14px;
+}
+
+.version-card {
+  padding: 17px;
+  border-radius: 9px;
+}
+
+.version-card > div {
+  min-width: 0;
+}
+
+.version-card h3,
+.version-card b {
+  line-height: 1.35;
+}
+
+.version-card p,
+.version-card small {
+  line-height: 1.55;
+}
+
+.full-button {
+  margin-top: 16px;
+}
+
+/* ATS recommendation / diagnostic cards that use generic detail-card */
+.ats-top-grid ~ .detail-card {
+  margin-bottom: 16px;
+}
+
+/* =========================================================
+   RESPONSIVE RHYTHM
+   ========================================================= */
+
+@media (max-width: 1050px) {
+  .apply-layout {
+    gap: 18px;
+  }
+
+  .apply-card {
+    padding: 25px;
+  }
+
+  .kanban {
+    gap: 12px;
+  }
+
+  .kanban-column {
+    min-width: 235px;
+  }
+}
+
+@media (max-width: 900px) {
+  .page-title {
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+
+  .apply-layout {
+    gap: 16px;
+  }
+
+  .apply-side {
+    margin-top: 16px;
+  }
+
+  .toolbar {
+    flex-wrap: wrap;
+  }
+
+  .toolbar-search {
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .kanban {
+    overflow-x: auto;
+    padding-bottom: 16px;
+  }
+
+  .kanban-column {
+    min-width: 245px;
+  }
+}
+
+@media (max-width: 580px) {
+  .page-title {
+    margin-bottom: 24px;
+  }
+
+  .page-title .section-kicker {
+    margin-bottom: 9px;
+  }
+
+  .page-title p {
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .apply-card {
+    padding: 20px;
+  }
+
+  .apply-tabs {
+    gap: 17px;
+    overflow-x: auto;
+    margin-bottom: 22px;
+  }
+
+  .apply-tabs button {
+    white-space: nowrap;
+  }
+
+  .workflow-card,
+  .why-card {
+    padding: 20px;
+  }
+
+  .toolbar {
+    gap: 9px;
+    margin-bottom: 21px !important;
+  }
+
+  .toolbar-search {
+    flex-basis: 100%;
+  }
+
+  .toolbar select,
+  .toolbar > .button {
+    flex: 1 1 auto;
+  }
+
+  .ats-top-grid > .detail-card,
+  .resume-detail-grid .detail-card {
+    padding: 20px !important;
+  }
+}
+/* ROLECLEAR_FORMATTING_PASS_END */
+/* =========================================================
+   RoleClear dashboard layout cleanup
+   Append this block to src/index.css
+========================================================= */
+
+@media (min-width: 901px) {
+  /* Keep workspace navigation visible while the page scrolls. */
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 240px;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 30;
+  }
+
+  .shell-main {
+    margin-left: 240px;
+    width: calc(100% - 240px);
+  }
+
+  /* Search was removed; keep utility actions on the right. */
+  .header-actions-right {
+    margin-left: auto;
+  }
+}
+
+/* Dashboard should size both columns from their own content. */
+.dashboard-grid {
+  align-items: start;
+}
+
+.dashboard-aside {
+  align-self: start;
+}
+
+/* Career signals now use the otherwise empty main-column space. */
+.dashboard-updates-main {
+  margin-top: 28px;
+}
+
+.dashboard-updates-main .aside-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashboard-updates-main .update {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 10px;
+}
+
+.dashboard-updates-main .update > span {
+  grid-column: 1;
+}
+
+.dashboard-updates-main .update > div {
+  grid-column: 2;
+}
+
+.dashboard-updates-main .update > small {
+  grid-column: 3;
+  white-space: nowrap;
+}
+
+/* Preserve original mobile drawer behavior. */
+@media (max-width: 900px) {
+  .shell-main {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .header-actions-right {
+    margin-left: auto;
+  }
+
+  .dashboard-updates-main .update {
+    display: flex;
+  }
+}
+/* =========================================================
+   RoleClear Resume Studio - worksheet UI
+   Append to src/index.css
+========================================================= */
+
+.resume-sheet-card {
+  margin-bottom: 28px;
+  background: #fff;
+  border: 1px solid rgba(20, 27, 35, 0.12);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(20, 27, 35, 0.04);
+}
+
+.resume-sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px 26px 20px;
+  border-bottom: 1px solid rgba(20, 27, 35, 0.10);
+}
+
+.resume-sheet-header h2 {
+  margin: 5px 0 5px;
+  font-size: 1.45rem;
+}
+
+.resume-sheet-header p {
+  margin: 0;
+  color: #748078;
+  font-size: 0.9rem;
+}
+
+.resume-sheet-smart-apply {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 18px 26px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 107, 17, 0.28);
+  background: rgba(255, 107, 17, 0.05);
+  border-radius: 12px;
+}
+
+.resume-sheet-smart-apply > div {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.resume-sheet-smart-apply b,
+.resume-sheet-smart-apply span {
+  display: block;
+}
+
+.resume-sheet-smart-apply span {
+  margin-top: 2px;
+  color: #718078;
+  font-size: 0.82rem;
+}
+
+.resume-sheet-grid {
+  margin: 0 26px 22px;
+  border: 1px solid rgba(20, 27, 35, 0.14);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.resume-sheet-row {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  min-height: 58px;
+  border-bottom: 1px solid rgba(20, 27, 35, 0.12);
+}
+
+.resume-sheet-row:last-child {
+  border-bottom: 0;
+}
+
+.resume-sheet-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 15px 16px;
+  background: #f7f8f6;
+  border-right: 1px solid rgba(20, 27, 35, 0.12);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #47534c;
+}
+
+.resume-sheet-label span {
+  color: #ff6b11;
+}
+
+.resume-sheet-label small {
+  display: block;
+  margin-top: 5px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: #8a948e;
+}
+
+.resume-sheet-row-large .resume-sheet-label {
+  display: block;
+}
+
+.resume-sheet-cell {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  background: #fff;
+}
+
+.resume-sheet-cell input,
+.resume-sheet-cell textarea {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #171a18;
+  font: inherit;
+  padding: 15px 17px;
+  resize: vertical;
+}
+
+.resume-sheet-cell input {
+  min-height: 56px;
+}
+
+.resume-sheet-cell textarea {
+  min-height: 220px;
+  line-height: 1.5;
+}
+
+.resume-sheet-cell input:focus,
+.resume-sheet-cell textarea:focus {
+  background: rgba(53, 116, 255, 0.025);
+  box-shadow: inset 0 0 0 2px rgba(53, 116, 255, 0.22);
+}
+
+.resume-sheet-cell input::placeholder,
+.resume-sheet-cell textarea::placeholder {
+  color: #a0aaa4;
+}
+
+.resume-sheet-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 26px 22px;
+  background: #fbfcfa;
+  border-top: 1px solid rgba(20, 27, 35, 0.08);
+}
+
+.resume-sheet-safety {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 650px;
+  color: #738078;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.resume-sheet-safety svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+@media (max-width: 760px) {
+  .resume-sheet-header,
+  .resume-sheet-smart-apply,
+  .resume-sheet-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .resume-sheet-grid {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  .resume-sheet-row {
+    grid-template-columns: 1fr;
+  }
+
+  .resume-sheet-label {
+    border-right: 0;
+    border-bottom: 1px solid rgba(20, 27, 35, 0.10);
+  }
+
+  .resume-sheet-header,
+  .resume-sheet-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .resume-sheet-smart-apply {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+}
+/* =========================================================
+   RoleClear Master Resume Profile
+   Append to src/index.css
+========================================================= */
+
+.resume-start-panel,
+.master-profile-editor,
+.master-profile-summary {
+  background: #fff;
+  border: 1px solid rgba(20, 27, 35, 0.12);
+  border-radius: 16px;
+}
+
+.resume-start-panel {
+  padding: 30px;
+}
+
+.resume-start-copy {
+  max-width: 700px;
+}
+
+.resume-start-copy h2 {
+  margin: 7px 0 8px;
+  font-size: 1.65rem;
+}
+
+.resume-start-copy p {
+  margin: 0;
+  color: #748078;
+}
+
+.resume-start-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 26px;
+}
+
+.resume-start-option {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 20px;
+  align-items: start;
+  gap: 14px;
+  padding: 22px;
+  text-align: left;
+  background: #fff;
+  border: 1px solid rgba(20, 27, 35, 0.13);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.resume-start-option:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 107, 17, 0.48);
+}
+
+.resume-start-option-disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.resume-start-option b,
+.resume-start-option span,
+.resume-start-option small {
+  display: block;
+}
+
+.resume-start-option b {
+  font-size: 1rem;
+  margin-bottom: 5px;
+}
+
+.resume-start-option span {
+  color: #728078;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.resume-start-option small {
+  margin-top: 9px;
+  color: #a16f38;
+}
+
+.resume-start-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  background: rgba(255, 107, 17, 0.08);
+  color: #ff6b11;
+}
+
+.master-profile-editor {
+  overflow: hidden;
+}
+
+.master-profile-editor-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 26px 28px;
+  border-bottom: 1px solid rgba(20, 27, 35, 0.1);
+}
+
+.master-profile-editor-head h2 {
+  margin: 6px 0 6px;
+}
+
+.master-profile-editor-head p {
+  margin: 0;
+  color: #748078;
+}
+
+.profile-section {
+  border-bottom: 1px solid rgba(20, 27, 35, 0.1);
+}
+
+.profile-section-head {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 20px 28px;
+  background: #fafbf9;
+}
+
+.profile-section-number {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(20, 27, 35, 0.12);
+  border-radius: 8px;
+  color: #78857e;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.profile-section-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.profile-section-head p {
+  margin: 3px 0 0;
+  color: #7e8983;
+  font-size: 0.82rem;
+}
+
+.profile-section-body {
+  padding: 22px 28px 26px;
+}
+
+.profile-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.profile-form-grid-lists {
+  align-items: start;
+}
+
+.profile-input,
+.profile-text-list {
+  display: block;
+}
+
+.profile-input > span,
+.profile-text-list > div > span {
+  display: block;
+  margin-bottom: 7px;
+  color: #4f5a54;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.profile-text-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profile-text-list small {
+  color: #929c96;
+  font-size: 0.72rem;
+}
+
+.profile-input input,
+.profile-text-list textarea,
+.profile-textarea {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid rgba(20, 27, 35, 0.14);
+  border-radius: 9px;
+  background: #fff;
+  color: #171a18;
+  font: inherit;
+  outline: none;
+}
+
+.profile-input input {
+  height: 44px;
+  padding: 0 12px;
+}
+
+.profile-text-list textarea,
+.profile-textarea {
+  padding: 12px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.profile-input input:focus,
+.profile-text-list textarea:focus,
+.profile-textarea:focus {
+  border-color: rgba(53, 116, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(53, 116, 255, 0.08);
+}
+
+.profile-record {
+  padding: 18px;
+  border: 1px solid rgba(20, 27, 35, 0.11);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.profile-record + .profile-record {
+  margin-top: 14px;
+}
+
+.profile-record-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.profile-record-head button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #8b958f;
+  cursor: pointer;
+}
+
+.profile-record-head button:hover {
+  background: rgba(180, 40, 40, 0.07);
+  color: #a32626;
+}
+
+.profile-record .profile-text-list {
+  margin-top: 14px;
+}
+
+.profile-empty {
+  padding: 18px;
+  border: 1px dashed rgba(20, 27, 35, 0.16);
+  border-radius: 10px;
+  color: #87928c;
+  font-size: 0.86rem;
+  text-align: center;
+}
+
+.master-profile-savebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 28px;
+  background: #f7faf5;
+}
+
+.master-profile-savebar > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 720px;
+  color: #6f7b74;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.master-profile-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px auto;
+  gap: 24px;
+  align-items: center;
+  padding: 24px 26px;
+}
+
+.master-profile-summary-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.master-profile-summary-main h2 {
+  margin: 4px 0 4px;
+  font-size: 1.25rem;
+}
+
+.master-profile-summary-main p {
+  margin: 0;
+  color: #7b8780;
+  font-size: 0.84rem;
+}
+
+.master-profile-summary-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(34, 155, 78, 0.08);
+  color: #229b4e;
+}
+
+.master-profile-completion strong,
+.master-profile-completion span {
+  display: block;
+}
+
+.master-profile-completion strong {
+  font-size: 1.45rem;
+}
+
+.master-profile-completion span {
+  margin-top: 2px;
+  color: #7b8780;
+  font-size: 0.76rem;
+}
+
+.master-profile-completion > div {
+  height: 5px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #e7ece8;
+}
+
+.master-profile-completion i {
+  display: block;
+  height: 100%;
+  background: #229b4e;
+}
+
+.master-profile-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.profile-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0 26px;
+}
+
+.profile-stat {
+  padding: 14px 15px;
+  border: 1px solid rgba(20, 27, 35, 0.11);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.profile-stat span,
+.profile-stat strong {
+  display: block;
+}
+
+.profile-stat span {
+  color: #7b8780;
+  font-size: 0.75rem;
+}
+
+.profile-stat strong {
+  margin-top: 4px;
+  font-size: 1.18rem;
+}
+
+@media (max-width: 1000px) {
+  .profile-stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .master-profile-summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .master-profile-completion {
+    grid-column: 1;
+  }
+
+  .master-profile-actions {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
+
+@media (max-width: 760px) {
+  .resume-start-options,
+  .profile-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-section-head {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .profile-section-action {
+    grid-column: 1 / -1;
+  }
+
+  .master-profile-editor-head,
+  .master-profile-savebar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .master-profile-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .master-profile-actions,
+  .master-profile-completion {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .profile-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .resume-start-panel,
+  .profile-section-body,
+  .profile-section-head,
+  .master-profile-editor-head,
+  .master-profile-savebar {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}

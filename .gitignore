@@ -21,3 +21,46 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Python
+.venv/
+venv/
+backend/.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+dist/
+build/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# ML / caches
+.cache/
+huggingface/
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.bak
+*_backup.py
+*.docx
+backend/*results*.json
+backend/tailored_*_result.json
+
+# OAuth / secrets
+backend/credentials/*.json
+backend/.roleclear_gmail_tokens.json

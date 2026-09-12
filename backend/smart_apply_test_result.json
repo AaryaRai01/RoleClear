@@ -1,0 +1,393 @@
+{
+  "resume_fit": 47,
+  "ghost_risk": "low",
+  "ghost_risk_reasons": [],
+  "required_skills": [
+    "Enrolled in sophomore year or higher at a college/university or any year at a graduate school",
+    "Working towards a B.E/ B.Tech in Computer Science, Information Technology and Circuit Branch graduating in 2028",
+    "quickly learn new technologies",
+    "analytical and problem-solving skills",
+    "thrive in a fast-paced environment",
+    "Be a self-starter and possess strong sense of self-motivation",
+    "in effectively communicating technical challenges and proposing solutions",
+    "Skilled in navigating through ambiguous or undefined problems, coupled with the ability to think abstractly",
+    "programming languages such as Java, C++ or Python"
+  ],
+  "preferred_skills": [
+    "programming languages such as Java, C++ or Python",
+    "web development technologies (HTML, CSS, JavaScript) and frameworks (React, Angular, or Vue.js) is a plus",
+    "Coursework in SQL and relational database concepts",
+    "in Computer Science fundamentals, including object-oriented design, data structures, algorithm development, problem-solving, and complexity"
+  ],
+  "matched_skills": [
+    "Enrolled in sophomore year or higher at a college/university or any year at a graduate school",
+    "Working towards a B.E/ B.Tech in Computer Science, Information Technology and Circuit Branch graduating in 2028",
+    "Be a self-starter and possess strong sense of self-motivation",
+    "programming languages such as Java, C++ or Python"
+  ],
+  "missing_skills": [
+    "quickly learn new technologies",
+    "analytical and problem-solving skills",
+    "thrive in a fast-paced environment",
+    "in effectively communicating technical challenges and proposing solutions",
+    "Skilled in navigating through ambiguous or undefined problems, coupled with the ability to think abstractly"
+  ],
+  "verdict": "Partial match",
+  "explanation": "4 of 9 required requirements have strong supporting evidence. 5 required requirements have weak or missing resume evidence. Eligibility alignment is 100%.",
+  "breakdown": {
+    "skills": 16,
+    "keywords": 42,
+    "experience": 54,
+    "projects": 39
+  },
+  "canonical_breakdown": {
+    "capabilities": 16,
+    "experience": 54,
+    "responsibilities": 42,
+    "eligibility": 100,
+    "preferred": 75
+  },
+  "required_requirements": [
+    "Enrolled in sophomore year or higher at a college/university or any year at a graduate school",
+    "Working towards a B.E/ B.Tech in Computer Science, Information Technology and Circuit Branch graduating in 2028",
+    "quickly learn new technologies",
+    "analytical and problem-solving skills",
+    "thrive in a fast-paced environment",
+    "Be a self-starter and possess strong sense of self-motivation",
+    "in effectively communicating technical challenges and proposing solutions",
+    "Skilled in navigating through ambiguous or undefined problems, coupled with the ability to think abstractly",
+    "programming languages such as Java, C++ or Python"
+  ],
+  "preferred_requirements": [
+    "programming languages such as Java, C++ or Python",
+    "web development technologies (HTML, CSS, JavaScript) and frameworks (React, Angular, or Vue.js) is a plus",
+    "Coursework in SQL and relational database concepts",
+    "in Computer Science fundamentals, including object-oriented design, data structures, algorithm development, problem-solving, and complexity"
+  ],
+  "matched_required": [
+    "Enrolled in sophomore year or higher at a college/university or any year at a graduate school",
+    "Working towards a B.E/ B.Tech in Computer Science, Information Technology and Circuit Branch graduating in 2028",
+    "Be a self-starter and possess strong sense of self-motivation",
+    "programming languages such as Java, C++ or Python"
+  ],
+  "missing_required": [
+    "quickly learn new technologies",
+    "analytical and problem-solving skills",
+    "thrive in a fast-paced environment",
+    "in effectively communicating technical challenges and proposing solutions",
+    "Skilled in navigating through ambiguous or undefined problems, coupled with the ability to think abstractly"
+  ],
+  "matched_preferred": [
+    "programming languages such as Java, C++ or Python",
+    "web development technologies (HTML, CSS, JavaScript) and frameworks (React, Angular, or Vue.js) is a plus",
+    "Coursework in SQL and relational database concepts",
+    "in Computer Science fundamentals, including object-oriented design, data structures, algorithm development, problem-solving, and complexity"
+  ],
+  "requirement_matches": [
+    {
+      "requirement": "Enrolled in sophomore year or higher at a college/university or any year at a graduate school",
+      "level": "required",
+      "category": "education",
+      "score": 100,
+      "matched": true,
+      "evidence": [
+        "B. TECH | Computer Science and Engineering | SRM | May 2028"
+      ]
+    },
+    {
+      "requirement": "Working towards a B.E/ B.Tech in Computer Science, Information Technology and Circuit Branch graduating in 2028",
+      "level": "required",
+      "category": "competency",
+      "score": 100,
+      "matched": true,
+      "evidence": [
+        "B. TECH | Computer Science and Engineering | SRM | May 2028",
+        "Software Engineer and Computer Science undergraduate with experience across Samsung R&D, AdOnMo, and startup engineering teams. Skilled in Java, Python, TypeScript, SQL, REST APIs, backend systems, and cloud infrastructure, with hands-on experience building scalable production-oriented applications. Google Solution Challenge Top 106 and published cloud-computing researcher. [summary, semantic=0.50]",
+        "R&D Intern at Samsung R&D Institute India [experience, semantic=0.45]"
+      ]
+    },
+    {
+      "requirement": "quickly learn new technologies",
+      "level": "required",
+      "category": "competency",
+      "score": 0,
+      "matched": false,
+      "evidence": [
+        "Listed in Skills: Computer Networks [skills, semantic=0.47]",
+        "Listed in Skills: Algorithms [skills, semantic=0.37]",
+        "Listed in Skills: JavaScript [skills, semantic=0.37]"
+      ]
+    },
+    {
+      "requirement": "analytical and problem-solving skills",
+      "level": "required",
+      "category": "soft_skill",
+      "score": 9,
+      "matched": false,
+      "evidence": [
+        "Listed in Skills: Algorithms [skills, semantic=0.53]",
+        "Listed in Skills: SQL [skills, semantic=0.50]",
+        "Listed in Skills: Java [skills, semantic=0.49]"
+      ]
+    },
+    {
+      "requirement": "thrive in a fast-paced environment",
+      "level": "required",
+      "category": "competency",
+      "score": 0,
+      "matched": false,
+      "evidence": [
+        "Intern at Vistalane Dynamic Solutions [experience, semantic=0.33]",
+        "Listed in Skills: FastAPI [skills, semantic=0.28]",
+        "Experience: Intern [skills, semantic=0.28]"
+      ]
+    },
+    {
+      "requirement": "Be a self-starter and possess strong sense of self-motivation",
+      "level": "required",
+      "category": "competency",
+      "score": 100,
+      "matched": true,
+      "evidence": [
+        "B. TECH | Computer Science and Engineering | SRM | May 2028"
+      ]
+    },
+    {
+      "requirement": "in effectively communicating technical challenges and proposing solutions.",
+      "level": "required",
+      "category": "competency",
+      "score": 2,
+      "matched": false,
+      "evidence": [
+        "Software Engineer and Computer Science undergraduate with experience across Samsung R&D, AdOnMo, and startup engineering teams. Skilled in Java, Python, TypeScript, SQL, REST APIs, backend systems, and cloud infrastructure, with hands-on experience building scalable production-oriented applications. Google Solution Challenge Top 106 and published cloud-computing researcher. [summary, semantic=0.34]",
+        "Intern at Vistalane Dynamic Solutions [experience, semantic=0.32]",
+        "Summary mention: Java [skills, semantic=0.32]"
+      ]
+    },
+    {
+      "requirement": "Skilled in navigating through ambiguous or undefined problems, coupled with the ability to think abstractly.",
+      "level": "required",
+      "category": "competency",
+      "score": 9,
+      "matched": false,
+      "evidence": [
+        "Listed in Skills: Algorithms [skills, semantic=0.41]",
+        "Listed in Skills: Python [skills, semantic=0.39]",
+        "Listed in Skills: Java [skills, semantic=0.39]"
+      ]
+    },
+    {
+      "requirement": "programming languages such as Java, C++ or Python",
+      "level": "preferred",
+      "category": "experience",
+      "score": 69,
+      "matched": true,
+      "evidence": [
+        "Unique relevant structured experience: 10 months",
+        "Matched concepts: object oriented programming, programming, java, languag, programm, python"
+      ]
+    },
+    {
+      "requirement": "web development technologies (HTML, CSS, JavaScript) and frameworks (React, Angular, or Vue.js) is a plus.",
+      "level": "preferred",
+      "category": "competency",
+      "score": 85,
+      "matched": true,
+      "evidence": [
+        "Matched concepts: programming",
+        "Explicit competency evidence: programming, javascript, react",
+        "Listed in Skills: JavaScript | Experience: Software Development Intern Bangalore | Experience: Intern | Project: RoleClear",
+        "Developing a responsive Next.js/React application providing resume-fit analysis, skill-gap insights, job-quality signals, ghost-risk analysis, and application tracking. [project, semantic=0.51]",
+        "Developing a responsive Next.js/React application providing resume-fit analysis, skill-gap insights, job-quality signals, ghost-risk analysis, and application tracking. Built dashboard-driven workflows for job analysis, resume tailoring, recruitment analytics, and application lifecycle management through integrated backend services. [project, semantic=0.51]"
+      ]
+    },
+    {
+      "requirement": "Coursework in SQL and relational database concepts",
+      "level": "preferred",
+      "category": "competency",
+      "score": 86,
+      "matched": true,
+      "evidence": [
+        "Matched concepts: sql analysis",
+        "Explicit competency evidence: sql analysis, sql",
+        "Listed in Skills: SQL | Summary mention: SQL",
+        "SQL [skills, semantic=0.63]",
+        "Databases & [skills, semantic=0.62]"
+      ]
+    },
+    {
+      "requirement": "in Computer Science fundamentals, including object-oriented design, data structures, algorithm development, problem-solving, and complexity ",
+      "level": "preferred",
+      "category": "soft_skill",
+      "score": 60,
+      "matched": true,
+      "evidence": [
+        "Matched concepts: computer science fundamentals, data structures and algorithms",
+        "Explicit competency evidence: computer science fundamentals, data structures and algorithms, algorithm, computer, data, object-orient, structur",
+        "Listed in Skills: Object-Oriented Programming [skills, semantic=0.68]",
+        "Object-Oriented Programming [skills, semantic=0.61]",
+        "Listed in Skills: Data Structures & Algorithms [skills, semantic=0.59]"
+      ]
+    },
+    {
+      "requirement": "programming languages such as Java, C++ or Python.",
+      "level": "required",
+      "category": "experience",
+      "score": 66,
+      "matched": true,
+      "evidence": [
+        "Unique relevant structured experience: 10 months",
+        "Matched concepts: object oriented programming, programming, java, languag, programm"
+      ]
+    }
+  ],
+  "experience_matches": [
+    {
+      "index": 0,
+      "title": "Software Development Intern Bangalore",
+      "organization": "Adonmo Private Limited",
+      "score": 56,
+      "matched_terms": [
+        "deployment",
+        "development",
+        "full-stack",
+        "platform",
+        "software",
+        "Knowledge of web development technologies (HTML, CSS, JavaScript) and frameworks (React, Angular, or Vue.js) is a plus.",
+        "programming",
+        "Coursework in SQL and relational database concepts",
+        "sql analysis",
+        "Contribute to our suite of automated tests and testing infrastructure",
+        "cloud systems",
+        "Contribute to tools and solutions to support and monitor our various cloud services",
+        "support",
+        "software engineering"
+      ],
+      "reasons": [
+        "Strong role-family evidence.",
+        "Demonstrates multiple target requirements/duties.",
+        "Title aligns with the target role."
+      ]
+    },
+    {
+      "index": 1,
+      "title": "R&D Intern",
+      "organization": "Samsung R&D Institute India",
+      "score": 50,
+      "matched_terms": [
+        "api",
+        "cloud",
+        "deployment",
+        "developer",
+        "r&d",
+        "system",
+        "Contribute to tools and solutions to support and monitor our various cloud services",
+        "backend systems",
+        "cloud systems",
+        "servic",
+        "Contribute to our suite of automated tests and testing infrastructure",
+        "Engage in developing solutions that seamlessly integrate into distributed systems, using innovative technology at an unprecedented scale and speed.",
+        "develop",
+        "integrate"
+      ],
+      "reasons": [
+        "Strong role-family evidence.",
+        "Demonstrates multiple target requirements/duties."
+      ]
+    },
+    {
+      "index": 2,
+      "title": "Intern",
+      "organization": "Vistalane Dynamic Solutions",
+      "score": 55,
+      "matched_terms": [
+        "apis",
+        "architecture",
+        "backend",
+        "deployment",
+        "infrastructure",
+        "platform",
+        "Contribute to tools and solutions to support and monitor our various cloud services",
+        "backend systems",
+        "cloud systems",
+        "monitor",
+        "servic",
+        "solution",
+        "Contribute to our suite of automated tests and testing infrastructure",
+        "Knowledge of web development technologies (HTML, CSS, JavaScript) and frameworks (React, Angular, or Vue.js) is a plus."
+      ],
+      "reasons": [
+        "Strong role-family evidence.",
+        "Demonstrates multiple target requirements/duties."
+      ]
+    }
+  ],
+  "work_sample_matches": [
+    {
+      "index": 0,
+      "name": "RoleClear",
+      "sample_type": "project",
+      "score": 34,
+      "matched_terms": [
+        "application",
+        "backend",
+        "Engage in developing solutions that seamlessly integrate into distributed systems, using innovative technology at an unprecedented scale and speed.",
+        "develop",
+        "integrate",
+        "Develop optimized code that may be included as part of our next software release",
+        "Contribute to tools and solutions to support and monitor our various cloud services",
+        "backend systems"
+      ],
+      "reasons": [
+        "Strong role-family work evidence.",
+        "Demonstrates some target requirements/duties."
+      ]
+    },
+    {
+      "index": 1,
+      "name": "BiasLens",
+      "sample_type": "project",
+      "score": 26,
+      "matched_terms": [
+        "application",
+        "Engage in developing solutions that seamlessly integrate into distributed systems, using innovative technology at an unprecedented scale and speed.",
+        "develop",
+        "integrate",
+        "Develop optimized code that may be included as part of our next software release",
+        "Contribute to tools and solutions to support and monitor our various cloud services",
+        "backend systems",
+        "servic"
+      ],
+      "reasons": [
+        "Transferable role-family work evidence.",
+        "Demonstrates some target requirements/duties."
+      ]
+    },
+    {
+      "index": 2,
+      "name": "Pingit",
+      "sample_type": "project",
+      "score": 47,
+      "matched_terms": [
+        "api",
+        "application",
+        "backend",
+        "Contribute to tools and solutions to support and monitor our various cloud services",
+        "backend systems",
+        "cloud systems",
+        "servic",
+        "Contribute to our suite of automated tests and testing infrastructure",
+        "Develop optimized code that may be included as part of our next software release",
+        "develop",
+        "Engage in developing solutions that seamlessly integrate into distributed systems, using innovative technology at an unprecedented scale and speed."
+      ],
+      "reasons": [
+        "Strong role-family work evidence.",
+        "Demonstrates multiple target requirements/duties."
+      ]
+    }
+  ],
+  "role_family": "engineering",
+  "extraction_quality": "structured",
+  "normalization_warnings": []
+}
