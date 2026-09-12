@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./public/roleclear-logo.svg" alt="RoleClear" width="260" />
+<img src="roleclear.png" alt="RoleClear" width="260" />
 
 ### Every Step Closer to Your First Yes.
 
