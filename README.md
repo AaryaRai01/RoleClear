@@ -1,249 +1,85 @@
-# RoleClear
+<div align="center">
 
-> **Stop Guessing. Start Applying Smarter.**
+<img src="./public/roleclear-logo.svg" alt="RoleClear" width="260" />
 
-![Status](https://img.shields.io/badge/status-active%20development-orange)
-![Frontend](https://img.shields.io/badge/frontend-React%2018%20%2B%20TypeScript%20%2B%20Vite-646CFF)
-![Backend](https://img.shields.io/badge/backend-FastAPI-009688)
-![ML](https://img.shields.io/badge/ML-MiniLM%20Semantic%20Ranking-blue)
-![Resume Export](https://img.shields.io/badge/resume%20export-DOCX-2B579A)
+### Every Step Closer to Your First Yes.
+
+**A student-first Career Operating System for smarter applications, stronger resumes, cleaner tracking, and better career decisions.**
+
+</div>
+
+---
 
 ## Overview
 
-**RoleClear** is a personal career operating system for students, interns, fresh graduates, and early-career applicants.
+**RoleClear** is a career operating system built for students, fresh graduates, and internship seekers.
 
-It is not a job board. RoleClear is designed to help users bring in opportunities they discover elsewhere, understand the role, compare it against their resume, improve their application, apply through the original source, and track the outcome.
+Instead of acting like another job board, RoleClear focuses on the full application lifecycle:
 
-### Core Workflow
+**Discover → Verify → Analyze → Tailor → Apply → Track → Learn**
 
-**Find → Understand → Match → Improve → Apply → Track → Learn**
-
----
-
-## Product Vision
-
-Applying for jobs is fragmented across job portals, resumes, email, spreadsheets, notes, and application trackers.
-
-RoleClear brings those workflows together into one application journey:
-
-1. Import a job opportunity.
-2. Parse the job description.
-3. Parse the candidate resume.
-4. Measure resume-to-job alignment.
-5. Identify missing or weak evidence.
-6. Tailor the resume without fabricating claims.
-7. Download a job-specific editable resume.
-8. Apply through the original employer page.
-9. Track the exact resume version used.
-10. Learn from application outcomes over time.
+The platform combines resume intelligence, job-fit analysis, ATS checks, truthful resume tailoring, application tracking, career-focused email organization, and analytics in one workspace.
 
 ---
 
-# Core Features
-
-## Smart Apply
-
-Smart Apply is the primary application workflow.
-
-Users can bring a job into RoleClear using:
-
-- Public job URL
-- Pasted job description
-- Uploaded job document
-
-### Smart Apply Pipeline
+## Core Workflow
 
 ```text
-Job URL / Description
+Find an opportunity
         ↓
-Job Extraction
+Bring it to RoleClear
         ↓
-Job Normalization
+Analyze the job
         ↓
-Resume Parsing
+Check Resume Fit
         ↓
-Resume ↔ Job Matching
+Review Skill Gaps + Requirements
         ↓
-Resume Fit
+Check Ghost Job Risk
         ↓
-Skill & Evidence Gaps
+Tailor Resume Safely
         ↓
-Resume Tailoring
+Download ATS-Friendly Resume
         ↓
-Claim Validation
+Apply
         ↓
-Editable Word Resume
+Track Application
         ↓
-Original Application Page
+Monitor Career Inbox
         ↓
-Application Tracker
+Learn from Analytics
 ```
 
-### Smart Apply Capabilities
+---
 
-- Public career-page job extraction
-- Structured job-title, company, location and description extraction
-- Required vs preferred qualification identification
-- Job requirement normalization
-- Resume upload and parsing
-- Resume Fit scoring
-- Matched requirement detection
-- Missing requirement detection
-- Experience relevance analysis
-- Project relevance analysis
-- Job-quality signals
-- Ghost-job risk indicators
-- Job-specific resume tailoring
-- Safe claim validation
-- Editable `.docx` generation
-- Resume version tracking
-- Original application-source linking
-- Application creation in tracker
+## Key Features
+
+### Smart Apply
+
+Smart Apply is the central workflow in RoleClear.
+
+It can:
+
+- Extract and normalize job information from a job URL or description
+- Analyze job requirements
+- Compare the job against the user's resume
+- Calculate Resume Fit
+- Surface missing or weak requirements
+- Identify skill gaps
+- Show job-quality / Ghost Risk signals
+- Rank resume evidence against job requirements
+- Generate a targeted resume version
+- Preserve candidate truth through claim validation
+- Export an editable ATS-friendly `.docx`
+- Continue directly into application tracking
 
 ---
 
-## Resume Fit Analysis
+### Resume Intelligence
 
-RoleClear compares a candidate resume with a normalized job profile.
+RoleClear parses uploaded resumes into a structured candidate profile.
 
-The system evaluates:
-
-- Technical skills
-- Programming languages
-- Frameworks and tools
-- Education
-- Internship and work experience
-- Projects
-- Responsibilities
-- Job-domain relevance
-- Preferred qualifications
-- Role-family alignment
-
-### Current Scoring Direction
-
-The current Resume Fit engine is being recalibrated toward a **market-style hybrid score**.
-
-The next scoring version will balance:
-
-- Keyword overlap
-- Skill coverage
-- Semantic similarity
-- Education alignment
-- Experience alignment
-- Project relevance
-- Role-family match
-- Preferred qualifications
-- Evidence strength
-
-The goal is to produce a score that is useful and intuitive for applicants while still keeping explainable evidence underneath.
-
-> Resume Fit is an alignment score, not a prediction of whether a recruiter or ATS will select the candidate.
-
----
-
-## 🤖 Machine Learning
-
-RoleClear uses machine learning primarily for semantic evidence retrieval and ranking.
-
-## Current ML Model
-
-**Model:** `sentence-transformers/all-MiniLM-L6-v2`
-
-### Purpose
-
-The ML model is used to rank which parts of the resume best support a job requirement.
-
-Example:
-
-```text
-Job Requirement
-"Experience developing scalable backend APIs"
-
-        ↓ MiniLM semantic ranking
-
-Resume Evidence
-
-1. Vistalane backend APIs
-2. Adonmo NestJS services
-3. RoleClear FastAPI backend
-4. Pingit serverless APIs
-```
-
-The ML model does **not** create experience or alter candidate facts.
-
-It ranks existing resume evidence.
-
----
-
-## ML Pipeline
-
-```text
-Job Requirement
-      ↓
-Requirement normalization
-      ↓
-Resume evidence extraction
-      ↓
-Sentence embeddings
-      ↓
-Cosine similarity
-      ↓
-Evidence ranking
-      ↓
-Top evidence returned
-```
-
-Resume evidence units include:
-
-- Summary
-- Skills
-- Experience
-- Experience bullets
-- Projects
-- Project bullets
-- Education
-
-Planned expansion:
-
-- Certifications
-- Research
-- Publications
-- Achievements
-
----
-
-## ML Evaluation
-
-RoleClear's current semantic evidence ranker was evaluated on a small development/silver dataset.
-
-### MiniLM Results
-
-| Metric | Result |
-|---|---:|
-| NDCG@3 | 0.7767 |
-| NDCG@5 | 0.8661 |
-| Precision@1 | 0.7500 |
-| Precision@3 | 0.5625 |
-| Recall@3 | 0.7938 |
-| MRR | 0.8562 |
-
-Evaluation size:
-
-```text
-16 requirement queries
-```
-
-These values are development metrics used to compare ranking approaches. They are **not production accuracy claims**.
-
-A LambdaMART experiment was also tested, but the MiniLM ranking approach performed better for the current dataset and was selected for V1.
-
----
-
-## 📄 Resume Intelligence
-
-RoleClear converts uploaded resumes into structured candidate profiles.
-
-## Parsed Resume Sections
+Supported resume information includes:
 
 - Personal information
 - Professional summary
@@ -255,169 +91,108 @@ RoleClear converts uploaded resumes into structured candidate profiles.
 - Publications
 - Research
 - Achievements
-- Languages
 - Coursework
-- Other sections
+- Languages
 
-## Supported Workflows
-
-- Resume upload
-- PDF parsing
-- DOCX parsing
-- Structured profile generation
-- Skills extraction
-- Experience extraction
-- Education extraction
-- Project extraction
-- Resume-to-job matching
-- Job-specific resume versions
+Resume matching uses semantic similarity and evidence ranking to identify which parts of a candidate's profile best support a job requirement.
 
 ---
 
-## 🧩 Resume Studio
+### Resume Studio
 
-Resume Studio is the candidate's resume workspace.
+Resume Studio acts as the user's resume workspace.
 
-## Master Resume
+Users can:
 
-Users maintain one primary resume profile containing:
+- Maintain a master resume
+- Upload PDF and DOCX resumes
+- Parse resume content
+- Create job-specific resume versions
+- View fit information
+- Keep tailored versions separate from the master resume
+- Download editable ATS-friendly Word resumes
 
-- Personal details
-- Education
-- Experience
-- Projects
-- Skills
-- Certifications
-- Achievements
-- Research
-- Publications
-- Links
+A targeted version can retain metadata such as:
 
-## Targeted Resume Versions
-
-RoleClear creates job-specific resume snapshots without overwriting the Master Resume.
-
-Each version can store:
-
-- Job title
+- Role
 - Company
 - Job URL
-- Resume Fit score
-- Tailored resume snapshot
-- Backend version ID
+- Resume Fit
+- Created date
+- Tailoring state
 - Claim-validation status
-- Date created
 
 ---
 
-## 🛡️ Safe Resume Tailoring
+### Truthful Resume Tailoring
 
-RoleClear currently uses a **selection and reordering** tailoring strategy.
+RoleClear is designed to improve presentation without fabricating candidate experience.
 
-The system may:
+The tailoring pipeline may:
 
 - Reorder skills
 - Prioritize relevant experience
-- Reorder existing experience bullets
+- Reorder existing bullets
 - Select relevant projects
 - Reorder project bullets
-- Reduce less-relevant content
+- Reduce less relevant content
 
-The system must not:
+It must **not** invent:
 
-- Invent skills
-- Invent work experience
-- Invent project outcomes
-- Invent certifications
-- Invent education
-- Fabricate metrics
-- Add unsupported claims
+- Skills
+- Work experience
+- Project outcomes
+- Certifications
+- Education
+- Metrics
+- Unsupported achievements
 
----
-
-## Claim Validation
-
-Every tailored resume is checked against the original parsed resume.
-
-The validator verifies that generated content comes from existing candidate evidence.
-
-Example response:
-
-```text
-Claim Validation: passed
-Unsupported claims: []
-```
-
-This safety layer is a core part of the tailoring pipeline.
+Every tailored resume is checked against the original parsed resume through a **claim-validation layer**.
 
 ---
 
-## 📝 Editable Word Resume Generation
-
-RoleClear generates ATS-friendly editable Word resumes.
-
-Backend endpoint:
-
-```text
-POST /api/v1/resume-export/tailored-docx
-```
-
-The generated resume uses:
-
-- Standard headings
-- Simple text layout
-- Bullet lists
-- ATS-friendly formatting
-- Editable `.docx` output
-- No tables
-- No text boxes
-- No complex graphics
-- No multi-column layout
-
-The downloaded Word file can be edited locally before submission.
-
----
-
-## ✅ ATS Checker
+### ATS Checker
 
 RoleClear includes a deterministic ATS-readiness checker.
 
-It can analyze:
+It evaluates areas such as:
 
 - Resume structure
-- Section presence
+- Section coverage
 - Contact information
-- Experience content
+- Experience quality
 - Action-oriented bullets
-- Date consistency
 - Education
+- Date consistency
+- Content completeness
 - Job-specific relevance
-- Resume content completeness
 
-The ATS score is intended as a resume-readiness indicator and not as a prediction of a specific employer ATS.
+> The ATS score is a resume-readiness indicator. It is not presented as a prediction of any specific employer's ATS.
 
 ---
 
-## 📋 Application Tracker
+### Application Tracker
 
-RoleClear tracks job applications after the user applies.
+Applications can be organized across the full hiring pipeline.
 
-## Supported Statuses
+Supported statuses include:
 
-- Draft
-- Applied
-- Screening
-- Interview
-- Offer
-- Rejected
-- Withdrawn
+```text
+Draft
+Applied
+Screening
+Interview
+Offer
+Rejected
+Withdrawn
+```
 
-## Tracked Information
+Tracked information can include:
 
 - Company
 - Role
 - Job URL
-- Application status
+- Current status
 - Date applied
 - Resume version used
 - Notes
@@ -426,177 +201,209 @@ RoleClear tracks job applications after the user applies.
 
 ---
 
-## 📬 Career Inbox
+### Career Inbox
 
-Career Inbox helps users organize job-related email updates.
+Career Inbox turns a noisy email inbox into a career-focused stream.
 
-## Current Direction
+Current Gmail integration supports career-oriented workflows such as:
 
-- Gmail integration
-- Career-email filtering
-- Application-related email detection
-- Interview notifications
-- Recruiter communication
+- Recruiter emails
+- Application acknowledgements
+- Screening updates
+- Interview communication
 - Rejection emails
-- Application updates
+- Hiring-process updates
 
-RoleClear is not designed to replace Gmail or Outlook.
-
-It provides a career-specific view of relevant messages.
+RoleClear is not intended to replace Gmail. It provides a focused view of messages relevant to the user's job search.
 
 ---
 
-## 🏠 Dashboard
+### Career Feed
 
-The RoleClear dashboard brings together:
+Career Feed brings together relevant career activity from the RoleClear workspace, including:
 
-- Active applications
-- Recent opportunities
-- Resume activity
+- Opportunities
+- Application activity
+- Career signals
+- Inbox-driven updates
+
+It is designed as an operational feed rather than an endless job-discovery feed.
+
+---
+
+### Dashboard
+
+The dashboard serves as the user's command center.
+
+It surfaces:
+
+- Applications
+- Responses
+- Interviews
+- Offers
+- Resume health
+- Recent applications
 - Career Inbox updates
-- Application progress
-- Interview activity
-- Resume versions
 - Smart Apply activity
+- Recent opportunities
 
 ---
 
-## 📊 Career Analytics
+### Analytics
 
-Planned and partially implemented analytics include:
+RoleClear converts application history into useful feedback.
 
-- Applications submitted
+Current analytics include:
+
+- Total applications
 - Response rate
 - Interviews
 - Offers
-- Rejections
-- Resume-version performance
-- Application conversion
-- Common skill gaps
-- Role-category performance
 - Application trends
+- Role-family patterns
+- Best-fit observations
+- Career activity insights
+
+Charts are generated from actual tracked application data rather than fabricated sample values.
 
 ---
 
-## 👻 Ghost Job Risk
+### Ghost Job Risk
 
-RoleClear includes rule-based job-quality signals.
+Ghost Job Risk is intentionally separate from Resume Fit.
 
-Signals may include:
+Job-quality signals may consider:
 
-- Missing posting date
-- Missing company metadata
-- Weak job-description structure
+- Missing posting dates
+- Weak or incomplete company metadata
+- Poorly structured job descriptions
 - Missing responsibilities
 - Missing candidate requirements
 - Other posting-quality anomalies
 
-Ghost Risk is independent from Resume Fit.
+A strong resume match does not automatically mean a job posting is high quality.
 
 ---
 
-## 🏗️ Architecture
+## Technology Stack
 
-## Frontend
+### Frontend
 
 - React 18
 - TypeScript
 - Vite
 - Zustand
-- Lucide Icons
-- Custom CSS
+- Lucide React
+- Custom responsive CSS
 - Progressive Web App direction
 
-## Backend
+### Backend
 
 - FastAPI
 - Python
-- Pydantic v2
+- Pydantic
 - HTTPX
 - BeautifulSoup
 - PyMuPDF
 - python-docx
 
-### 🤖 Machine Learning
+### AI / NLP
 
 - Sentence Transformers
 - MiniLM
 - Semantic similarity
-- Evidence ranking
+- Resume-to-job evidence ranking
+- Requirement extraction
+- Rule-based job-quality signals
 
-## Persistence
+### Authentication & Integrations
 
-Current MVP persistence includes:
+- Supabase Auth
+- Google OAuth
+- Gmail API
 
-- Browser `localStorage`
-- Resume version storage
-- Application state
+### Persistence
 
-Planned production persistence:
+The current application uses a combination of:
 
-- Supabase / PostgreSQL
-- User authentication
-- Cloud-backed resume storage
-- Persistent application data
+- Zustand application state
+- Browser persistence for local user workspace data
+- Supabase-backed authentication/session handling
+
+Production persistence is being finalized for deployment.
+
+### Deployment
+
+- Frontend target: **Vercel**
+- Backend target: **Render**
+- Production deployment: **in progress**
 
 ---
 
-## 📁 Current Project Structure
+## Architecture
 
 ```text
-roleclear_final/
-│
-├── src/
-│   ├── App.tsx
-│   ├── index.css
-│   ├── main.tsx
-│   └── ...
-│
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   │   └── routes/
-│   │   ├── core/
-│   │   ├── schemas/
-│   │   └── services/
-│   │
-│   ├── test_tailoring.py
-│   └── test_docx_export.py
-│
-├── public/
-├── package.json
-├── vite.config.ts
-├── tsconfig.json
-└── README.md
+                           ┌─────────────────────┐
+                           │        User         │
+                           └──────────┬──────────┘
+                                      │
+                                      ▼
+                         ┌─────────────────────────┐
+                         │ React + TypeScript + Vite│
+                         │       Frontend          │
+                         └───────────┬─────────────┘
+                                     │
+                   ┌─────────────────┼─────────────────┐
+                   │                 │                 │
+                   ▼                 ▼                 ▼
+            Supabase Auth      FastAPI Backend   Local Workspace
+                   │                 │               State
+                   │                 │
+                   │        ┌────────┼─────────┐
+                   │        │        │         │
+                   │        ▼        ▼         ▼
+                   │     Resume    Job      Analytics
+                   │     Engine   Analysis   Services
+                   │        │        │
+                   │        └────┬───┘
+                   │             ▼
+                   │      Matching / NLP
+                   │
+                   └─────────────┬──────────────
+                                 │
+                                 ▼
+                         Google OAuth / Gmail
 ```
+
+RoleClear is intentionally structured as a **modular monolith** for the MVP rather than unnecessary microservices.
 
 ---
 
-## ⚙️ Important Backend Components
+## Important Backend Modules
 
 ```text
 job_extractor.py
 ```
 
-Extracts structured information from public job pages.
+Extracts structured information from supported job pages.
 
 ```text
 job_normalizer.py
 ```
 
-Converts extracted job data into canonical requirements.
+Converts extracted job information into normalized requirements.
 
 ```text
 resume_parser.py
 ```
 
-Converts uploaded resumes into structured profiles.
+Parses uploaded resumes into structured candidate information.
 
 ```text
 resume_normalizer.py
 ```
 
-Creates the canonical resume representation used by the matcher.
+Creates the normalized resume representation used during matching.
 
 ```text
 match_engine.py
@@ -608,239 +415,308 @@ Calculates resume-to-job alignment.
 ml_evidence_ranker.py
 ```
 
-Uses MiniLM to rank resume evidence against job requirements.
+Uses MiniLM-based semantic ranking to connect resume evidence with job requirements.
 
 ```text
 resume_tailor.py
 ```
 
-Builds targeted resumes using safe selection and reordering.
+Builds targeted resume versions using safe selection and reordering.
 
 ```text
 resume_docx.py
 ```
 
-Generates editable ATS-friendly Word resumes.
+Creates editable ATS-friendly Word resumes.
 
 ---
 
-## 🔌 API Flow
+## Selected API Flow
 
-## Job Extraction
+### Extract Job
 
-```text
+```http
 POST /api/v1/smart-apply/extract
 ```
 
-## Resume Parsing
+### Parse Resume
 
-```text
+```http
 POST /api/v2/resumes/parse
 ```
 
-## Job Analysis
+### Analyze Job + Resume
 
-```text
+```http
 POST /api/v1/smart-apply/analyze
 ```
 
-## Resume Tailoring
+### Export Tailored Resume
 
-```text
-POST /api/v1/smart-apply/tailor
-```
-
-## Word Resume Export
-
-```text
+```http
 POST /api/v1/resume-export/tailored-docx
 ```
 
----
-
-## 🚧 Development Status
-
-## Working
-
-- Smart Apply frontend
-- Public job extraction
-- Resume parsing
-- Canonical resume model
-- Canonical job model
-- Deterministic matching
-- MiniLM semantic evidence ranking
-- Resume Fit pipeline
-- Experience relevance
-- Project relevance
-- Ghost-risk signals
-- ATS Checker
-- Resume Tailoring
-- Claim Validation
-- Resume Studio foundation
-- Editable Word resume generation
-- Application Tracker
-- Career Inbox foundation
-- Dashboard
-
-## Currently Improving
-
-- Resume Fit score calibration
-- Cross-site job extraction consistency
-- Required/preferred requirement classification
-- Hybrid market-style scoring
-- Smart Apply Step 2 UX
-- Resume Studio end-to-end frontend integration
-- Production persistence
-
----
-
-## 🎯 Current Development Focus — Smart Apply V2
-
-Smart Apply V2 is focused on making the match score more intuitive and useful while keeping the system explainable.
-
-The next scoring approach will combine:
+### Gmail OAuth
 
 ```text
-Keyword Match
-+ Skill Coverage
-+ Semantic Similarity
-+ Education Match
-+ Experience Match
-+ Project Match
-+ Role-Family Match
-+ Preferred Qualification Match
+GET /api/v1/email/gmail/authorize
+GET /api/v1/email/gmail/callback
 ```
 
-Semantic evidence will remain available for explanations, but the main Resume Fit score will no longer rely too heavily on strict evidence thresholds.
+Additional endpoints are used for Gmail status, synchronization, and disconnect workflows.
 
 ---
 
-## 💻 Local Development
+## Project Structure
 
-## Frontend
+```text
+roleclear_final/
+│
+├── public/
+│   ├── roleclear-icon.svg
+│   ├── roleclear-logo.svg
+│   └── ...
+│
+├── src/
+│   ├── App.tsx
+│   ├── CareerFeed.tsx
+│   ├── Analytics.tsx
+│   ├── SettingsView.tsx
+│   ├── useCareerStore.ts
+│   ├── main.tsx
+│   ├── index.css
+│   └── ...
+│
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── core/
+│   │   ├── schemas/
+│   │   └── services/
+│   ├── requirements.txt
+│   └── ...
+│
+├── package.json
+├── vite.config.ts
+├── tsconfig.json
+└── README.md
+```
+
+---
+
+## Local Development
+
+### 1. Clone the repository
+
+```bash
+git clone <your-repository-url>
+cd roleclear_final
+```
+
+### 2. Install frontend dependencies
 
 ```bash
 npm install
+```
+
+### 3. Start the frontend
+
+```bash
 npm run dev
 ```
 
-or:
-
-```bash
-npx vite --port 4001
-```
-
-Default development URL:
+The Vite development server normally runs at:
 
 ```text
-http://localhost:4001
+http://localhost:5173
 ```
 
 ---
 
-## Backend
+## Backend Setup
+
+### 1. Enter the backend directory
 
 ```bash
 cd backend
-python -m venv .venv
+```
+
+### 2. Create a virtual environment
+
+```bash
+python3 -m venv .venv
+```
+
+### 3. Activate it
+
+macOS / Linux:
+
+```bash
 source .venv/bin/activate
+```
+
+Windows:
+
+```bash
+.venv\Scripts\activate
+```
+
+### 4. Install dependencies
+
+```bash
 pip install -r requirements.txt
+```
+
+### 5. Start FastAPI
+
+```bash
 uvicorn app.main:app --reload
 ```
 
-Backend URL:
+Local backend:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-Health check:
+---
 
-```text
-GET /health
+## Environment Variables
+
+Keep secrets outside Git.
+
+Example backend variables:
+
+```env
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=http://127.0.0.1:8000/api/v1/email/gmail/callback
+
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
 ```
 
----
+Example frontend variables:
 
-## 🧭 Product Principles
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+```
 
-RoleClear is being built around the following principles:
-
-1. **User evidence first**  
-   Resume tailoring should never invent candidate facts.
-
-2. **Explainable scoring**  
-   Users should understand why a score was given.
-
-3. **Original-source applications**  
-   RoleClear helps users prepare, but applications are submitted on the employer's original website.
-
-4. **Career workflow, not job aggregation**  
-   RoleClear is a personal career operating system, not another job board.
-
-5. **Privacy-conscious design**  
-   Career data and resumes should be handled with minimal unnecessary exposure.
+> Never expose `GOOGLE_CLIENT_SECRET` or `SUPABASE_SERVICE_ROLE_KEY` through `VITE_*` variables.
 
 ---
 
-## 🗺️ Roadmap
+## Google OAuth Development Redirect
 
-## Smart Apply
+For local Gmail integration, the Google OAuth Web Client must include the exact redirect URI:
 
-- [x] Job URL import
-- [x] Job extraction
-- [x] Resume parsing
-- [x] Requirement matching
-- [x] Semantic evidence ranking
-- [x] Ghost-risk signals
-- [x] Resume tailoring
-- [x] Claim validation
-- [x] Word export
-- [ ] Hybrid Resume Fit V2
-- [ ] Compact Step 2 UX
-- [ ] Production persistence
+```text
+http://127.0.0.1:8000/api/v1/email/gmail/callback
+```
 
-### 🧩 Resume Studio
+OAuth redirect URIs must match exactly.
 
-- [x] Master profile foundation
-- [x] Targeted resume snapshots
-- [x] Resume version IDs
-- [x] DOCX export backend
-- [ ] Complete frontend persistence
-- [ ] Version comparison
-- [ ] Re-upload edited Word resumes
-
-## Applications
-
-- [x] Application tracking
-- [x] Resume-version association
-- [ ] Follow-up automation
-- [ ] Calendar integration
-
-### 📬 Career Inbox
-
-- [x] Gmail integration foundation
-- [x] Career-email filtering
-- [ ] Application-to-email linking improvements
-- [ ] Outlook integration
-
-## Analytics
-
-- [ ] Response-rate analytics
-- [ ] Resume-version performance
-- [ ] Skill-gap trends
-- [ ] Application funnel analytics
+Production OAuth configuration will use the deployed backend callback URL.
 
 ---
 
-## ⚠️ Disclaimer
+## Security Principles
 
-RoleClear is an applicant productivity and career-management tool.
+RoleClear is built around several important constraints:
 
-Resume Fit, ATS readiness, Ghost Risk, and other generated signals are advisory and should not be interpreted as guarantees of recruiter decisions, interview selection, or hiring outcomes.
+- Never fabricate resume claims
+- Validate tailored content against candidate evidence
+- Keep OAuth secrets server-side
+- Request only required Google scopes
+- Keep secrets out of Git
+- Treat Gmail data as user-sensitive
+- Keep Resume Fit independent from Ghost Job Risk
+- Avoid unsupported hiring-probability claims
 
 ---
 
-## 📜 License
+## Product Philosophy
 
-License information will be added before public release.
+RoleClear is not intended to become another LinkedIn, Naukri, or Internshala clone.
+
+Those platforms are primarily opportunity sources.
+
+RoleClear is the **execution and intelligence layer around the application process**:
+
+```text
+Opportunity
+   ↓
+Decision
+   ↓
+Preparation
+   ↓
+Application
+   ↓
+Tracking
+   ↓
+Outcome
+   ↓
+Learning
+```
+
+The product is designed to help students spend less time guessing and more time making informed, high-quality applications.
+
+---
+
+## Current Status
+
+### Completed
+
+- Responsive landing experience
+- Authentication flow
+- Dashboard
+- Smart Apply
+- Job extraction and normalization
+- Resume parsing
+- Resume Fit analysis
+- Semantic evidence ranking
+- Skill-gap and requirement analysis
+- Ghost Job Risk signals
+- Resume Studio
+- Safe resume tailoring
+- Claim validation
+- ATS-friendly Word export
+- ATS Checker
+- Application Tracker
+- Career Feed
+- Gmail-connected Career Inbox
+- Career Analytics
+- Settings and account interface
+- RoleClear branding and app icon
+
+### Next
+
+- Production deployment
+- Production OAuth configuration
+- Production-grade per-user Gmail token persistence
+- End-to-end production validation
+
+---
+
+## Why RoleClear?
+
+Most job-search products stop at discovery.
+
+RoleClear is built around what happens **after a student finds a job**.
+
+> **Find the role. Understand the fit. Improve the application. Track the outcome. Learn from every attempt.**
+
+---
+
+<div align="center">
+
+### ROLECLEAR
+
+**Every Step Closer to Your First Yes.**
+
+Built to make the first-job journey clearer.
+
+</div>
