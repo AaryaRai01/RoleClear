@@ -33,9 +33,6 @@ from app.services.job_extractor import (
 )
 from app.services.job_normalizer import normalize_job
 from app.services.match_engine import match_resume_to_job
-from app.services.ml_evidence_ranker import (
-    rank_resume_for_requirements,
-)
 from app.services.resume_tailor import tailor_resume_for_job
 from app.services.resume_normalizer import normalize_resume
 
@@ -514,6 +511,10 @@ async def analyze_job(
 
     if ENABLE_SEMANTIC_RANKER:
         try:
+            from app.services.ml_evidence_ranker import (
+                rank_resume_for_requirements,
+            )
+
             raw_ml_evidence = rank_resume_for_requirements(
                 ml_requirements,
                 payload.resume,

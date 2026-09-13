@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from copy import deepcopy
-import re
+import os
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from app.schemas.resume import ParsedResumeV2
@@ -13,7 +14,14 @@ from app.schemas.tailoring import (
     TailoringEvidence,
 )
 from app.services.job_normalizer import normalize_job
-from app.services.ml_evidence_ranker import RankedEvidence, rank_resume_for_requirements
+if TYPE_CHECKING:
+    from app.services.ml_evidence_ranker import RankedEvidence
+
+
+ENABLE_SEMANTIC_RANKER = (
+    os.getenv("ENABLE_SEMANTIC_RANKER", "true").lower()
+    == "true"
+)
 
 
 def _clean(value: str | None) -> str:
@@ -24,44 +32,6 @@ def _clean(value: str | None) -> str:
 
 def _norm(value: str | None) -> str:
     return _clean(value).lower()
-
-
-def _strip_extraction_artifact(
-    value: str | None,
-) -> str:
-    """
-    Remove a single stray role token that can be attached to the end of a
-    previous PDF bullet by line reconstruction, e.g.:
-        "... AR/VR prototype. Developer"
-
-    This is display/output sanitation only. It does not rewrite factual
-    content or add claims.
-    """
-    clean = _clean(value)
-
-    if not clean:
-        return ""
-
-    return re.sub(
-        r"([.!?])\s+"
-        r"(?:Developer|Engineer|Intern|Manager|Analyst|Consultant|"
-        r"Researcher|Designer|Architect|Lead|Coordinator)"
-        r"\s*$",
-        r"\1",
-        clean,
-    )
-
-
-def _claim_norm(value: str | None) -> str:
-    """
-    Claim-comparison normalization that treats a known extraction artifact
-    as equivalent to its cleaned representation.
-    """
-    return _norm(
-        _strip_extraction_artifact(
-            value
-        )
-    )
 
 
 def _dedupe(values: list[str]) -> list[str]:
@@ -92,6 +62,14 @@ def _rank(job: ExtractedJob, resume: ParsedResumeV2):
     requirements = _requirements(job)
     if not requirements:
         return [], {}
+
+    if not ENABLE_SEMANTIC_RANKER:
+        return requirements, {}
+
+    from app.services.ml_evidence_ranker import (
+        rank_resume_for_requirements,
+    )
+
     ranked = rank_resume_for_requirements(
         requirements,
         resume,
@@ -200,16 +178,6 @@ def _tailor_experience(
     for source_index, source_item in indexed:
         item = deepcopy(source_item)
         original = list(item.bullets)
-        sanitized_original = [
-            _strip_extraction_artifact(
-                bullet
-            )
-            for bullet in original
-        ]
-        had_extraction_cleanup = (
-            sanitized_original != original
-        )
-
         scored = [
             (
                 bullet,
@@ -226,12 +194,7 @@ def _tailor_experience(
         scored.sort(key=lambda row: (row[1], -row[2]), reverse=True)
 
         if scored:
-            item.bullets = [
-                _strip_extraction_artifact(
-                    row[0]
-                )
-                for row in scored[:max_bullets]
-            ]
+            item.bullets = [row[0] for row in scored[:max_bullets]]
 
         tailored.append(item)
 
@@ -240,17 +203,6 @@ def _tailor_experience(
                 section="experience",
                 action="reordered_or_trimmed_bullets",
                 detail=f"{_clean(item.title) or 'Experience'}: kept {len(item.bullets)} of {len(original)} existing bullets.",
-            ))
-
-        if had_extraction_cleanup:
-            changes.append(TailoringChange(
-                section="experience",
-                action="cleaned_extraction_artifact",
-                detail=(
-                    f"{_clean(item.title) or 'Experience'}: removed a "
-                    "known PDF line-reconstruction artifact from an "
-                    "existing bullet. No factual content was added."
-                ),
             ))
 
     if [index for index, _ in indexed] != list(range(len(resume.experience))):
@@ -352,12 +304,7 @@ def _validate(source: ParsedResumeV2, tailored: ParsedResumeV2) -> ClaimValidati
         (_norm(x.company), _norm(x.title), _norm(x.start_date), _norm(x.end_date))
         for x in source.experience
     }
-    source_exp_bullets = {
-        _claim_norm(b)
-        for x in source.experience
-        for b in x.bullets
-        if _claim_norm(b)
-    }
+    source_exp_bullets = {_norm(b) for x in source.experience for b in x.bullets if _norm(b)}
     source_exp_tech = {_norm(t) for x in source.experience for t in x.technologies if _norm(t)}
 
     for x in tailored.experience:
@@ -366,10 +313,8 @@ def _validate(source: ParsedResumeV2, tailored: ParsedResumeV2) -> ClaimValidati
             unsupported.append(f"Unsupported experience entry: {_clean(x.title)} @ {_clean(x.company)}")
         for b in x.bullets:
             checked += 1
-            if _claim_norm(b) not in source_exp_bullets:
-                unsupported.append(
-                    f"Unsupported experience claim: {b}"
-                )
+            if _norm(b) not in source_exp_bullets:
+                unsupported.append(f"Unsupported experience claim: {b}")
         for t in x.technologies:
             checked += 1
             if _norm(t) not in source_exp_tech:
