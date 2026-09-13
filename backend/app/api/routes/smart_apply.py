@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 
 from fastapi import (
@@ -37,6 +38,12 @@ from app.services.ml_evidence_ranker import (
 )
 from app.services.resume_tailor import tailor_resume_for_job
 from app.services.resume_normalizer import normalize_resume
+
+
+ENABLE_SEMANTIC_RANKER = (
+    os.getenv("ENABLE_SEMANTIC_RANKER", "true").lower()
+    == "true"
+)
 
 
 router = APIRouter(
@@ -505,38 +512,42 @@ async def analyze_job(
         in canonical_job.requirements
     ])
 
-    try:
-        raw_ml_evidence = rank_resume_for_requirements(
-            ml_requirements,
-            payload.resume,
-            top_k=3,
-            minimum_similarity=0.25,
-        )
+    if ENABLE_SEMANTIC_RANKER:
+        try:
+            raw_ml_evidence = rank_resume_for_requirements(
+                ml_requirements,
+                payload.resume,
+                top_k=3,
+                minimum_similarity=0.25,
+            )
 
-        # Normalize ML dictionary keys so punctuation differences
-        # between canonical requirements and matcher output do not
-        # prevent evidence from being attached.
-        ml_evidence = {
-            _requirement_key(
-                requirement
-            ): matches
-            for requirement, matches
-            in raw_ml_evidence.items()
-        }
+            # Normalize ML dictionary keys so punctuation differences
+            # between canonical requirements and matcher output do not
+            # prevent evidence from being attached.
+            ml_evidence = {
+                _requirement_key(
+                    requirement
+                ): matches
+                for requirement, matches
+                in raw_ml_evidence.items()
+            }
 
-    except Exception as exc:
-        # Development diagnostic.
-        #
-        # Smart Apply must continue using deterministic matching if
-        # semantic ranking fails. We print the error so it is not
-        # silently hidden during development.
+        except Exception as exc:
+            # Smart Apply must continue using deterministic matching
+            # if semantic ranking fails.
+            print(
+                "\n[ROLECLEAR ML ERROR]",
+                type(exc).__name__,
+                str(exc),
+                "\n",
+            )
+
+            ml_evidence = {}
+    else:
         print(
-            "\n[ROLECLEAR ML ERROR]",
-            type(exc).__name__,
-            str(exc),
-            "\n",
+            "[ROLECLEAR ML] Semantic ranker disabled "
+            "for this deployment."
         )
-
         ml_evidence = {}
 
     # -----------------------------------------------------
@@ -897,4 +908,3 @@ async def tailor_resume(
                 "The tailored resume could not be generated safely."
             ),
         ) from exc
-
