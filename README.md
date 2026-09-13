@@ -1,4 +1,3 @@
-<div align="center">
 
 <img src="roleclear.png" alt="RoleClear" width="260" />
 
