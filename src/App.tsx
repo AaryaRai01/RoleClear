@@ -7,6 +7,15 @@ import './career-inbox-ui.css';
 import './ats-checker-ui.css';
 import './roleclear-final-fixes.css';
 import './roleclear-final-cleanup.css';
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://127.0.0.1:8000';
+
+const EMAIL_API_BASE =
+  `${API_BASE_URL}/api/v1/email`;
+
+const API_ORIGIN =
+  new URL(API_BASE_URL).origin;
 
 import {
   analyzeJob,
@@ -102,8 +111,10 @@ function Logo({ light = false }: { light?: boolean }) {
       <img
         className="roleclear-brand-icon"
         src="/roleclear-icon.svg"
-        alt=""
-        aria-hidden="true"
+        alt="RoleClear"
+        onError={(event) => {
+          event.currentTarget.style.display = 'none';
+        }}
       />
       <span>ROLECLEAR</span>
     </div>
@@ -7443,9 +7454,6 @@ function ProfileStat({
    INBOX
 ========================================================= */
 
-const EMAIL_API_BASE =
-  'http://127.0.0.1:8000/api/v1/email';
-
 type GmailConnectionStatus = {
   connected: boolean;
   email: string | null;
@@ -7906,9 +7914,7 @@ function InboxView({
       event: MessageEvent,
     ) => {
       if (
-        event.origin !==
-        'http://127.0.0.1:8000'
-      ) {
+        event.origin !== API_ORIGIN      ) {
         return;
       }
 
@@ -9953,7 +9959,7 @@ function ResumeTailor({
 
       const response =
         await fetch(
-          'http://127.0.0.1:8000/api/v1/resume-export/tailored-docx',
+          `${API_BASE_URL}/api/v1/resume-export/tailored-docx`,
           {
             method: 'POST',
             headers: {
@@ -12619,9 +12625,7 @@ function EmailConnect({
       event: MessageEvent,
     ) => {
       if (
-        event.origin !==
-        'http://127.0.0.1:8000'
-      ) {
+        event.origin !== API_ORIGIN      ) {
         return;
       }
 
@@ -13549,4 +13553,3 @@ export default function App() {
     />
   );
 }
-
