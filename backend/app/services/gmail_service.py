@@ -25,9 +25,17 @@ GMAIL_SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
 ]
 
-TOKEN_PATH = Path(
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+
+_configured_token_path = Path(
     settings.gmail_token_path
 ).expanduser()
+
+TOKEN_PATH = (
+    _configured_token_path
+    if _configured_token_path.is_absolute()
+    else BACKEND_ROOT / _configured_token_path
+).resolve()
 
 # Local-development state store. For production/multi-user deployment,
 # move OAuth state and tokens into the authenticated user's database row.
@@ -173,17 +181,47 @@ async def exchange_code(
         )
 
     if response.status_code >= 400:
+        try:
+            error_payload = response.json()
+        except Exception:
+            error_payload = {}
+
+        error = str(
+            error_payload.get(
+                "error",
+                "oauth_error",
+            )
+        )
+        description = str(
+            error_payload.get(
+                "error_description",
+                "Google rejected the OAuth code exchange.",
+            )
+        )
+
+        print(
+            "[GMAIL OAUTH] token exchange failed: "
+            f"{response.status_code} | {error} | {description}"
+        )
+
         raise GmailAuthError(
-            "Google rejected the OAuth code exchange."
+            f"Google OAuth failed: {error} — {description}"
         )
 
     token = response.json()
+    previous = _read_tokens() or {}
 
-    # A valid Gmail OAuth connection does not require a refresh token for the
-    # initial session. Google can omit refresh_token even when offline access
-    # was requested (for example on repeat consent grants). Keep the access
-    # token and allow immediate sync. If it later expires and no refresh token
-    # exists, get_access_token() will ask the user to reconnect.
+    # Google may omit refresh_token on repeat consent grants.
+    # Preserve the previously saved refresh token so the Gmail connection
+    # survives backend/frontend restarts and access-token expiry.
+    if (
+        not token.get("refresh_token")
+        and previous.get("refresh_token")
+    ):
+        token["refresh_token"] = (
+            previous["refresh_token"]
+        )
+
     token["obtained_at"] = int(
         time.time()
     )
