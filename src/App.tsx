@@ -7563,7 +7563,7 @@ class GmailSyncError extends Error {
 
 async function syncGmailMessages(): Promise<GmailSyncedMessage[]> {
   const response = await fetch(
-    `${EMAIL_API_BASE}/gmail/sync?max_results=60`,
+    `${EMAIL_API_BASE}/gmail/sync?max_results=20`,
     {
       method: 'POST',
     },
