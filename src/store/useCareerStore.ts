@@ -49,6 +49,10 @@ export interface TrackedApplication {
   date: string;
   resumeLabel: string;
   createdAt: string;
+  updatedAt?: string;
+  importedFromGmail?: boolean;
+  externalApplicationId?: string;
+  lastSyncedEmailId?: string;
 }
 
 interface CareerStore {
@@ -76,6 +80,26 @@ interface CareerStore {
   updateTrackedApplicationStatus: (
     id: string,
     status: TrackedApplicationStatus,
+  ) => void;
+
+  updateTrackedApplication: (
+    id: string,
+    changes: Partial<
+      Pick<
+        TrackedApplication,
+        | 'company'
+        | 'role'
+        | 'source'
+        | 'url'
+        | 'status'
+        | 'appliedAt'
+        | 'date'
+        | 'resumeLabel'
+        | 'updatedAt'
+        | 'externalApplicationId'
+        | 'lastSyncedEmailId'
+      >
+    >,
   ) => void;
 
   deleteTrackedApplication: (
@@ -269,6 +293,34 @@ export const useCareerStore = create<CareerStore>((set) => ({
               ? {
                   ...application,
                   status,
+                  updatedAt:
+                    new Date().toISOString(),
+                }
+              : application,
+        );
+
+      persistTrackedApplications(next);
+
+      return {
+        trackedApplications: next,
+      };
+    }),
+
+  updateTrackedApplication: (
+    id,
+    changes,
+  ) =>
+    set((state) => {
+      const next =
+        state.trackedApplications.map(
+          (application) =>
+            application.id === id
+              ? {
+                  ...application,
+                  ...changes,
+                  updatedAt:
+                    changes.updatedAt ??
+                    new Date().toISOString(),
                 }
               : application,
         );

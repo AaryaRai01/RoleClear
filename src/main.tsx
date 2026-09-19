@@ -1,67 +1,27 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { ClerkProvider } from '@clerk/react';
 
-import App from './App.tsx';
-
+import App from './App';
 import './index.css';
 
+const clerkPublishableKey =
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-async function clearOldServiceWorkers() {
-  if (!('serviceWorker' in navigator)) {
-    return;
-  }
-
-  const registrations =
-    await navigator.serviceWorker.getRegistrations();
-
-  await Promise.all(
-    registrations.map(
-      (registration) =>
-        registration.unregister(),
-    ),
+if (!clerkPublishableKey) {
+  throw new Error(
+    'Missing VITE_CLERK_PUBLISHABLE_KEY',
   );
 }
 
-
-async function clearOldCaches() {
-  if (!('caches' in window)) {
-    return;
-  }
-
-  const cacheNames =
-    await caches.keys();
-
-  await Promise.all(
-    cacheNames.map(
-      (cacheName) =>
-        caches.delete(cacheName),
-    ),
-  );
-}
-
-
-async function startApp() {
-  /*
-   * DEVELOPMENT:
-   *
-   * Do not register the PWA service worker while developing.
-   * An old cached bundle can otherwise replace the current
-   * Vite source code in the browser.
-   */
-  if (import.meta.env.DEV) {
-    await clearOldServiceWorkers();
-
-    await clearOldCaches();
-  }
-
-  createRoot(
-    document.getElementById('root')!,
-  ).render(
-    <StrictMode>
+ReactDOM.createRoot(
+  document.getElementById('root')!,
+).render(
+  <React.StrictMode>
+    <ClerkProvider
+      publishableKey={clerkPublishableKey}
+    >
       <App />
-    </StrictMode>,
-  );
-}
-
-
-void startApp();
+    </ClerkProvider>
+  </React.StrictMode>,
+);

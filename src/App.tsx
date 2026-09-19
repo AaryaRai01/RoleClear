@@ -79,7 +79,29 @@ import type { AuthView, View } from './types/navigation';
 import CareerFeed from './CareerFeed';
 import Analytics from './Analytics';
 import SettingsView from './SettingsView';
-import { supabase } from './lib/supabase';
+
+type CareerInboxEventBase =
+  ReturnType<
+    typeof useCareerStore.getState
+  >['careerInboxEvents'][number];
+
+type CareerInboxEventCompat =
+  Omit<CareerInboxEventBase, 'type'> & {
+    type: string;
+    subject?: string;
+    company?: string;
+    role?: string;
+    createdAt?: string;
+  };
+
+import {
+  AuthenticateWithRedirectCallback,
+  useAuth,
+  useClerk,
+  useSignIn,
+  useSignUp,
+  useUser,
+} from '@clerk/react';
 
 /* =========================================================
    NAVIGATION
@@ -653,7 +675,17 @@ function Auth({
   mode: 'signin' | 'signup' | 'otp';
   onAuth: (view: AuthView) => void;
 }) {
-  const signIn = mode === 'signin';
+  const signInMode = mode === 'signin';
+
+  const {
+    signIn,
+    fetchStatus: signInFetchStatus,
+  } = useSignIn();
+
+  const {
+    signUp,
+    fetchStatus: signUpFetchStatus,
+  } = useSignUp();
 
   const [submitting, setSubmitting] =
     useState(false);
@@ -661,6 +693,67 @@ function Auth({
     useState('');
   const [authMessage, setAuthMessage] =
     useState('');
+  const [verificationCode, setVerificationCode] =
+    useState('');
+
+  const errorText = (
+    error: unknown,
+    fallback: string,
+  ) => {
+    if (
+      typeof error === 'object' &&
+      error !== null
+    ) {
+      const value = error as {
+        message?: string;
+        longMessage?: string;
+        errors?: Array<{
+          message?: string;
+          longMessage?: string;
+        }>;
+      };
+
+      return (
+        value.longMessage ||
+        value.message ||
+        value.errors?.[0]?.longMessage ||
+        value.errors?.[0]?.message ||
+        fallback
+      );
+    }
+
+    return fallback;
+  };
+
+  const finishSignIn =
+    async () => {
+      if (
+        signIn.status ===
+        'complete'
+      ) {
+        const { error } =
+          await signIn.finalize();
+
+        if (error) {
+          throw error;
+        }
+      }
+    };
+
+  const finishSignUp =
+    async () => {
+      if (
+        signUp.status ===
+        'complete'
+      ) {
+        const { error } =
+          await signUp.finalize();
+
+        if (error) {
+          throw error;
+        }
+      }
+    };
 
   const handleEmailAuth = async (
     event: React.FormEvent<HTMLFormElement>,
@@ -687,22 +780,53 @@ function Auth({
       );
 
     try {
-      if (signIn) {
+      if (signInMode) {
         const {
           error,
         } =
-          await supabase.auth.signInWithPassword(
-            {
-              email,
-              password,
-            },
-          );
+          await signIn.password({
+            emailAddress: email,
+            password,
+          });
 
         if (error) {
           throw error;
         }
 
-        return;
+        if (
+          signIn.status ===
+          'complete'
+        ) {
+          await finishSignIn();
+          return;
+        }
+
+        if (
+          signIn.status ===
+            'needs_client_trust' ||
+          signIn.status ===
+            'needs_second_factor'
+        ) {
+          const {
+            error: codeError,
+          } =
+            await signIn.mfa
+              .sendEmailCode();
+
+          if (codeError) {
+            throw codeError;
+          }
+
+          setAuthMessage(
+            'We sent a verification code to your email.',
+          );
+          onAuth('otp');
+          return;
+        }
+
+        throw new Error(
+          'Additional sign-in verification is required.',
+        );
       }
 
       const fullName =
@@ -715,21 +839,30 @@ function Auth({
           form.get('mobile') ?? '',
         ).trim();
 
+      const nameParts =
+        fullName
+          .split(/\s+/)
+          .filter(Boolean);
+
+      const firstName =
+        nameParts[0] ?? '';
+
+      const lastName =
+        nameParts
+          .slice(1)
+          .join(' ');
+
       const {
-        data,
         error,
       } =
-        await supabase.auth.signUp({
-          email,
+        await signUp.password({
+          emailAddress: email,
           password,
-          options: {
-            emailRedirectTo:
-              window.location.origin,
-            data: {
-              full_name:
-                fullName,
-              mobile,
-            },
+          firstName,
+          lastName,
+          unsafeMetadata: {
+            full_name: fullName,
+            mobile,
           },
         });
 
@@ -737,21 +870,115 @@ function Auth({
         throw error;
       }
 
-      if (!data.session) {
-        setAuthMessage(
-          'Account created. Check your email to confirm your address, then sign in.',
-        );
+      const {
+        error: verificationError,
+      } =
+        await signUp.verifications
+          .sendEmailCode();
+
+      if (verificationError) {
+        throw verificationError;
       }
+
+      setAuthMessage(
+        'We sent a verification code to your email.',
+      );
+
+      onAuth('otp');
     } catch (error) {
       setAuthError(
-        error instanceof Error
-          ? error.message
-          : 'Authentication failed.',
+        errorText(
+          error,
+          signInMode
+            ? 'Sign-in failed.'
+            : 'Account creation failed.',
+        ),
       );
     } finally {
       setSubmitting(false);
     }
   };
+
+  const handleVerifyCode =
+    async (
+      event:
+        React.FormEvent<HTMLFormElement>,
+    ) => {
+      event.preventDefault();
+
+      setSubmitting(true);
+      setAuthError('');
+      setAuthMessage('');
+
+      try {
+        const code =
+          verificationCode.trim();
+
+        if (!code) {
+          throw new Error(
+            'Enter the verification code.',
+          );
+        }
+
+        if (
+          signUp.status ===
+            'missing_requirements' &&
+          signUp.unverifiedFields.includes(
+            'email_address',
+          )
+        ) {
+          const {
+            error,
+          } =
+            await signUp.verifications
+              .verifyEmailCode({
+                code,
+              });
+
+          if (error) {
+            throw error;
+          }
+
+          await finishSignUp();
+          return;
+        }
+
+        if (
+          signIn.status ===
+            'needs_client_trust' ||
+          signIn.status ===
+            'needs_second_factor'
+        ) {
+          const {
+            error,
+          } =
+            await signIn.mfa
+              .verifyEmailCode({
+                code,
+              });
+
+          if (error) {
+            throw error;
+          }
+
+          await finishSignIn();
+          return;
+        }
+
+        throw new Error(
+          'No active verification request was found. Start sign-in or sign-up again.',
+        );
+      } catch (error) {
+        setAuthError(
+          errorText(
+            error,
+            'Verification failed.',
+          ),
+        );
+      } finally {
+        setSubmitting(false);
+      }
+    };
 
   const handleGoogleAuth =
     async () => {
@@ -760,27 +987,30 @@ function Auth({
       setAuthMessage('');
 
       try {
+        const origin =
+          window.location.origin;
+
         const {
           error,
         } =
-          await supabase.auth.signInWithOAuth(
-            {
-              provider: 'google',
-              options: {
-                redirectTo:
-                  window.location.origin,
-              },
-            },
-          );
+          await signIn.sso({
+            strategy:
+              'oauth_google',
+            redirectCallbackUrl:
+              `${origin}/sso-callback`,
+            redirectUrl:
+              origin,
+          });
 
         if (error) {
           throw error;
         }
       } catch (error) {
         setAuthError(
-          error instanceof Error
-            ? error.message
-            : 'Google sign-in failed.',
+          errorText(
+            error,
+            'Google sign-in failed.',
+          ),
         );
         setSubmitting(false);
       }
@@ -797,31 +1027,242 @@ function Auth({
         return;
       }
 
+      setSubmitting(true);
       setAuthError('');
       setAuthMessage('');
 
-      const {
-        error,
-      } =
-        await supabase.auth.resetPasswordForEmail(
-          email.trim(),
-          {
-            redirectTo:
-              window.location.origin,
-          },
-        );
+      try {
+        const {
+          error: createError,
+        } =
+          await signIn.create({
+            identifier:
+              email.trim(),
+          });
 
-      if (error) {
+        if (createError) {
+          throw createError;
+        }
+
+        const {
+          error: sendError,
+        } =
+          await signIn
+            .resetPasswordEmailCode
+            .sendCode();
+
+        if (sendError) {
+          throw sendError;
+        }
+
+        const code =
+          window.prompt(
+            'Enter the password reset code sent to your email:',
+          );
+
+        if (!code?.trim()) {
+          return;
+        }
+
+        const {
+          error: verifyError,
+        } =
+          await signIn
+            .resetPasswordEmailCode
+            .verifyCode({
+              code:
+                code.trim(),
+            });
+
+        if (verifyError) {
+          throw verifyError;
+        }
+
+        const newPassword =
+          window.prompt(
+            'Enter your new password (minimum 15 characters):',
+          );
+
+        if (
+          !newPassword ||
+          newPassword.length < 15
+        ) {
+          throw new Error(
+            'Password must be at least 15 characters.',
+          );
+        }
+
+        const {
+          error: passwordError,
+        } =
+          await signIn
+            .resetPasswordEmailCode
+            .submitPassword({
+              password:
+                newPassword,
+              signOutOfOtherSessions:
+                true,
+            });
+
+        if (passwordError) {
+          throw passwordError;
+        }
+
+        await finishSignIn();
+      } catch (error) {
         setAuthError(
-          error.message,
+          errorText(
+            error,
+            'Password reset failed.',
+          ),
         );
-        return;
+      } finally {
+        setSubmitting(false);
       }
-
-      setAuthMessage(
-        'Password reset email sent.',
-      );
     };
+
+  if (mode === 'otp') {
+    return (
+      <div className="auth-page">
+        <div className="auth-side">
+          <Logo light />
+
+          <div className="auth-quote">
+            <span>“</span>
+
+            <h2>
+              One last step.
+              <br />
+              <em>Verify your email.</em>
+            </h2>
+
+            <p>
+              Enter the code Clerk sent to your email to continue to RoleClear.
+            </p>
+
+            <div className="auth-line" />
+          </div>
+
+          <div className="auth-side-footer">
+            FIND <i>→</i> UNDERSTAND <i>→</i>{' '}
+            MATCH <i>→</i> GROW
+          </div>
+        </div>
+
+        <div className="auth-main">
+          <button
+            className="auth-back"
+            onClick={() => {
+              void signIn.reset();
+              void signUp.reset();
+              onAuth('signin');
+            }}
+            type="button"
+          >
+            ← Back to sign in
+          </button>
+
+          <div className="auth-form-wrap">
+            <div className="auth-mobile-logo">
+              <Logo />
+            </div>
+
+            <div className="section-kicker">
+              Verification
+            </div>
+
+            <h1>
+              Check your email.
+            </h1>
+
+            <p className="auth-intro">
+              Enter the verification code to finish securely.
+            </p>
+
+            {authError && (
+              <div
+                style={{
+                  marginBottom: '14px',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  background:
+                    'rgba(220,38,38,.06)',
+                  border:
+                    '1px solid rgba(220,38,38,.14)',
+                  color: '#b91c1c',
+                  fontSize: '.82rem',
+                }}
+              >
+                {authError}
+              </div>
+            )}
+
+            {authMessage && (
+              <div
+                style={{
+                  marginBottom: '14px',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  background:
+                    'rgba(22,163,74,.06)',
+                  border:
+                    '1px solid rgba(22,163,74,.14)',
+                  color: '#15803d',
+                  fontSize: '.82rem',
+                }}
+              >
+                {authMessage}
+              </div>
+            )}
+
+            <form
+              onSubmit={
+                handleVerifyCode
+              }
+            >
+              <label>
+                Verification code
+                <input
+                  name="code"
+                  value={
+                    verificationCode
+                  }
+                  onChange={(event) =>
+                    setVerificationCode(
+                      event.target.value,
+                    )
+                  }
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder="Enter code"
+                  required
+                />
+              </label>
+
+              <Button
+                type="submit"
+                className="full-button"
+                disabled={
+                  submitting ||
+                  signInFetchStatus ===
+                    'fetching' ||
+                  signUpFetchStatus ===
+                    'fetching'
+                }
+              >
+                {submitting
+                  ? 'Verifying...'
+                  : 'Verify and continue'}
+                <ArrowUpRight
+                  size={17}
+                />
+              </Button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-page">
@@ -868,19 +1309,19 @@ function Auth({
           </div>
 
           <div className="section-kicker">
-            {signIn
+            {signInMode
               ? 'Welcome back'
               : 'Start your journey'}
           </div>
 
           <h1>
-            {signIn
+            {signInMode
               ? 'Good to see you.'
               : 'Welcome to RoleClear.'}
           </h1>
 
           <p className="auth-intro">
-            {signIn
+            {signInMode
               ? 'Your next move is waiting.'
               : 'Build a career system that moves with you.'}
           </p>
@@ -926,7 +1367,7 @@ function Auth({
               handleEmailAuth
             }
           >
-            {!signIn && (
+            {!signInMode && (
               <label>
                 Full name
                 <input
@@ -938,7 +1379,7 @@ function Auth({
               </label>
             )}
 
-            {!signIn && (
+            {!signInMode && (
               <label>
                 Mobile number
                 <input
@@ -968,21 +1409,21 @@ function Auth({
                 name="password"
                 type="password"
                 placeholder={
-                  signIn
+                  signInMode
                     ? 'Your password'
-                    : 'Create a password'
+                    : 'Create a password (15+ characters)'
                 }
                 required
-                minLength={6}
+                minLength={15}
                 autoComplete={
-                  signIn
+                  signInMode
                     ? 'current-password'
                     : 'new-password'
                 }
               />
             </label>
 
-            {signIn && (
+            {signInMode && (
               <div className="forgot">
                 <button
                   type="button"
@@ -1004,14 +1445,29 @@ function Auth({
               </div>
             )}
 
+            {!signInMode && (
+              <div
+                id="clerk-captcha"
+                style={{
+                  marginBottom: '12px',
+                }}
+              />
+            )}
+
             <Button
               type="submit"
               className="full-button"
-              disabled={submitting}
+              disabled={
+                submitting ||
+                signInFetchStatus ===
+                  'fetching' ||
+                signUpFetchStatus ===
+                  'fetching'
+              }
             >
               {submitting
                 ? 'Please wait...'
-                : signIn
+                : signInMode
                   ? 'Sign in'
                   : 'Create your account'}
               <ArrowUpRight
@@ -1041,20 +1497,20 @@ function Auth({
           </Button>
 
           <p className="auth-switch">
-            {signIn
+            {signInMode
               ? 'New to RoleClear?'
               : 'Already have an account?'}{' '}
             <button
               type="button"
               onClick={() =>
                 onAuth(
-                  signIn
+                  signInMode
                     ? 'signup'
                     : 'signin',
                 )
               }
             >
-              {signIn
+              {signInMode
                 ? 'Create an account'
                 : 'Sign in'}
             </button>
@@ -1074,6 +1530,10 @@ function AppShell({
 }: {
   onLogout: () => void;
 }) {
+  const {
+    user,
+    isLoaded: userLoaded,
+  } = useUser();
   const [view, setView] = useState<View>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -1101,103 +1561,93 @@ function AppShell({
     useState(false);
 
   useEffect(() => {
-    let mounted = true;
+    if (
+      !userLoaded ||
+      !user
+    ) {
+      return;
+    }
 
-    supabase.auth
-      .getUser()
-      .then(({ data }) => {
-        if (!mounted) return;
+    const name =
+      user.fullName ||
+      [
+        user.firstName,
+        user.lastName,
+      ]
+        .filter(Boolean)
+        .join(' ') ||
+      user.primaryEmailAddress
+        ?.emailAddress
+        .split('@')[0] ||
+      'RoleClear User';
 
-        const user = data.user;
+    const email =
+      user.primaryEmailAddress
+        ?.emailAddress ?? '';
 
-        if (!user) return;
+    setAccountName(name);
+    setAccountEmail(email);
 
-        const metadata =
-          user.user_metadata ?? {};
+    const storageKey =
+      `roleclear_current_resume_${user.id}`;
 
-        const name =
-          metadata.full_name ||
-          metadata.name ||
-          user.email?.split('@')[0] ||
-          'RoleClear User';
+    setResumeStorageKey(
+      storageKey,
+    );
 
-        setAccountName(
-          String(name),
-        );
-        setAccountEmail(
-          user.email ?? '',
-        );
-
-        const storageKey =
-          `roleclear_current_resume_${user.id}`;
-
-        setResumeStorageKey(
+    try {
+      const stored =
+        window.localStorage.getItem(
           storageKey,
         );
 
-        try {
-          const stored =
-            window.localStorage.getItem(
-              storageKey,
-            );
+      if (stored) {
+        const parsed =
+          JSON.parse(stored);
 
-          if (stored) {
-            const parsed =
-              JSON.parse(stored);
-
-            if (
-              parsed &&
-              typeof parsed ===
-                'object'
-            ) {
-              setCurrentResume(
-                parsed,
-              );
-            }
-          } else {
-            /*
-             * Migration path: if a resume is already in the Zustand store
-             * from the current session, save it under this authenticated
-             * user's key instead of losing it on the first auth-enabled
-             * reload/sign-out.
-             */
-            const existingResume =
-              useCareerStore
-                .getState()
-                .currentResume;
-
-            if (existingResume) {
-              window.localStorage.setItem(
-                storageKey,
-                JSON.stringify(
-                  existingResume,
-                ),
-              );
-            } else {
-              useCareerStore.setState({
-                currentResume: null,
-              });
-            }
-          }
-        } catch {
-          // A malformed local value should not prevent the app from loading.
-        } finally {
-          setResumeStorageReady(
-            true,
+        if (
+          parsed &&
+          typeof parsed ===
+            'object'
+        ) {
+          setCurrentResume(
+            parsed,
           );
         }
-      })
-      .catch(() => {
-        // Sidebar can still render if user metadata is unavailable.
-      });
+      } else {
+        const existingResume =
+          useCareerStore
+            .getState()
+            .currentResume;
 
-    return () => {
-      mounted = false;
-    };
-  }, [setCurrentResume]);
+        if (existingResume) {
+          window.localStorage.setItem(
+            storageKey,
+            JSON.stringify(
+              existingResume,
+            ),
+          );
+        } else {
+          useCareerStore.setState({
+            currentResume: null,
+          });
+        }
+      }
+    } catch {
+      // Storage failure should not block RoleClear.
+    } finally {
+      setResumeStorageReady(
+        true,
+      );
+    }
+  }, [
+    userLoaded,
+    user,
+    setCurrentResume,
+  ]);
 
   /*
-   * Persist the parsed resume per authenticated Supabase user.
+   * Persist the parsed resume per authenticated Clerk user.
    * ATS readiness is deterministic from currentResume, so restoring the
    * resume also restores the same ATS score/report after sign-out/sign-in.
    */
@@ -1438,9 +1888,11 @@ function Dashboard({
     (state) => state.trackedApplications,
   );
 
-  const careerInboxEvents = useCareerStore(
-    (state) => state.careerInboxEvents,
-  );
+  const careerInboxEvents =
+    useCareerStore(
+      (state) =>
+        state.careerInboxEvents,
+    ) as CareerInboxEventCompat[];
 
   const currentResume = useCareerStore(
     (state) => state.currentResume,
@@ -3497,7 +3949,7 @@ function Applications({
       <PageTitle
         eyebrow="Your application journey"
         title="Application tracker"
-        subtitle="Only applications you actually add through RoleClear appear here."
+        subtitle="Applications you confirm in RoleClear or verified application confirmations imported from Gmail appear here."
         action={
           <Button
             onClick={() =>
@@ -3603,7 +4055,7 @@ function Applications({
           </h2>
 
           <p>
-            Complete Smart Apply and confirm “I’ve applied” to add your first real application.
+            Confirm “I’ve applied” through Smart Apply or sync Gmail to import verified application confirmations.
           </p>
 
           <Button
@@ -4413,7 +4865,7 @@ function calculateAtsReadiness(
 
       if (
         stem.length >= 2 &&
-        stem.at(-1) === stem.at(-2)
+        stem[stem.length - 1] === stem[stem.length - 2]
       ) {
         candidates.add(
           stem.slice(0, -1),
@@ -4434,7 +4886,7 @@ function calculateAtsReadiness(
 
       if (
         stem.length >= 2 &&
-        stem.at(-1) === stem.at(-2)
+        stem[stem.length - 1] === stem[stem.length - 2]
       ) {
         candidates.add(
           stem.slice(0, -1),
@@ -7803,20 +8255,336 @@ function InboxView({
       .replace(/[^a-z0-9]+/g, ' ')
       .trim();
 
+  const cleanExtractedText = (
+    value: string,
+  ) =>
+    value
+      .replace(/&(?:#39|apos);/gi, "'")
+      .replace(/&amp;/gi, '&')
+      .replace(/\s+/g, ' ')
+      .replace(
+        /^[\s:;,.\-–—]+|[\s:;,.\-–—]+$/g,
+        '',
+      )
+      .trim();
+
+  const messageText = (
+    message: GmailSyncedMessage,
+  ) =>
+    [
+      message.subject,
+      message.sender,
+      message.snippet,
+      message.body_text,
+    ].join(' ');
+
+  const extractExternalApplicationId = (
+    message: GmailSyncedMessage,
+  ) => {
+    const value =
+      messageText(message);
+
+    const patterns = [
+      /\b(?:job\s*)?id\s*[:#-]?\s*([A-Z0-9][A-Z0-9-]{3,})\b/i,
+      /\breq(?:uisition)?\s*(?:id|number)?\s*[:#-]?\s*([A-Z0-9][A-Z0-9-]{3,})\b/i,
+      /\breference\s*(?:id|number)?\s*[:#-]?\s*([A-Z0-9][A-Z0-9-]{3,})\b/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = value.match(
+        pattern,
+      );
+
+      if (match?.[1]) {
+        return match[1];
+      }
+    }
+
+    return undefined;
+  };
+
+  const isStrongApplicationConfirmation = (
+    message: GmailSyncedMessage,
+  ) => {
+    const value =
+      normalize(
+        messageText(message),
+      );
+
+    const hasApplicationWord =
+      /\b(application|applications|applied|applying|apply)\b/.test(
+        value,
+      );
+
+    if (!hasApplicationWord) {
+      return false;
+    }
+
+    return [
+      /\bthank you for applying\b/,
+      /\bthanks for applying\b/,
+      /\bsuccessfully applied\b/,
+      /\byou have officially applied\b/,
+      /\bapplication received\b/,
+      /\bapplication submitted\b/,
+      /\bapplication successfully submitted\b/,
+      /\bwe received your application\b/,
+      /\bwe have received your application\b/,
+      /\bwe ve received your application\b/,
+      /\byour application has been received\b/,
+      /\byour application was received\b/,
+      /\bthis email confirms.{0,80}received your application\b/,
+    ].some(
+      (pattern) =>
+        pattern.test(value),
+    );
+  };
+
+  const inferCompanyFromMessage = (
+    message: GmailSyncedMessage,
+  ) => {
+    const subject =
+      cleanExtractedText(
+        message.subject,
+      );
+
+    const body =
+      cleanExtractedText(
+        `${message.snippet} ${message.body_text}`,
+      );
+
+    const subjectPatterns = [
+      /(?:applying|applied)\s+to\s+([A-Z][A-Za-z0-9&.' -]{1,60})(?:!|$)/i,
+      /application\s+(?:to|with)\s+([A-Z][A-Za-z0-9&.' -]{1,60})(?:!|$)/i,
+      /we\s+(?:have\s+)?received\s+your\s+([A-Z][A-Za-z0-9&.' -]{1,40})\s+application\b/i,
+      /application\s+for\s+.{3,100}?\s+at\s+([A-Z][A-Za-z0-9&.' -]{1,60})(?:!|$)/i,
+    ];
+
+    for (
+      const pattern of
+      subjectPatterns
+    ) {
+      const match =
+        subject.match(pattern);
+
+      if (match?.[1]) {
+        return cleanExtractedText(
+          match[1],
+        );
+      }
+    }
+
+    const bodyPatterns = [
+      /(?:opening|role|position)\s+at\s+([A-Z][A-Za-z0-9&.' -]{1,60})/i,
+      /interest\s+in\s+joining\s+([A-Z][A-Za-z0-9&.' -]{1,60})/i,
+      /future\s+with\s+([A-Z][A-Za-z0-9&.' -]{1,60})/i,
+    ];
+
+    for (
+      const pattern of
+      bodyPatterns
+    ) {
+      const match =
+        body.match(pattern);
+
+      if (match?.[1]) {
+        const candidate =
+          cleanExtractedText(
+            match[1],
+          ).split(
+            /(?:\.|,|\s+the\s+world|\s+recruiting\s+team)/i,
+          )[0];
+
+        if (
+          candidate &&
+          candidate.length <= 60
+        ) {
+          return candidate;
+        }
+      }
+    }
+
+    const displayName =
+      message.sender.match(
+        /^\s*"?([^"<]+?)"?\s*</,
+      )?.[1];
+
+    if (
+      displayName &&
+      !/^(no[- ]?reply|noreply|do[- ]?not[- ]?reply|notification)$/i.test(
+        displayName.trim(),
+      )
+    ) {
+      return cleanExtractedText(
+        displayName,
+      );
+    }
+
+    const email =
+      message.sender.match(
+        /<?([A-Z0-9._%+-]+)@([A-Z0-9.-]+)>?/i,
+      );
+
+    if (email) {
+      const local =
+        email[1].replace(
+          /^(no[-_.]?reply|do[-_.]?not[-_.]?reply)[-_.]?/i,
+          '',
+        );
+
+      const domainParts =
+        email[2]
+          .toLowerCase()
+          .split('.');
+
+      const genericDomains =
+        new Set([
+          'myworkday',
+          'greenhouse-mail',
+          'smartrecruiters',
+          'lever',
+          'workablemail',
+          'gmail',
+          'outlook',
+        ]);
+
+      const localCandidate =
+        local
+          .split(/[._-]+/)
+          .filter(Boolean)
+          .join(' ');
+
+      if (
+        localCandidate &&
+        localCandidate.length >= 3 &&
+        !/^(jobs?|careers?|recruiting|talent|notification)$/i.test(
+          localCandidate,
+        )
+      ) {
+        return localCandidate
+          .split(' ')
+          .map(
+            (part) =>
+              part.charAt(0).toUpperCase() +
+              part.slice(1),
+          )
+          .join(' ');
+      }
+
+      const domainCandidate =
+        domainParts.find(
+          (part) =>
+            part.length >= 3 &&
+            !genericDomains.has(
+              part,
+            ) &&
+            ![
+              'com',
+              'org',
+              'net',
+              'co',
+              'in',
+              'jobs',
+              'mail',
+            ].includes(part),
+        );
+
+      if (domainCandidate) {
+        return (
+          domainCandidate
+            .charAt(0)
+            .toUpperCase() +
+          domainCandidate.slice(1)
+        );
+      }
+    }
+
+    return 'Company';
+  };
+
+  const inferRoleFromMessage = (
+    message: GmailSyncedMessage,
+  ) => {
+    const value =
+      cleanExtractedText(
+        `${message.subject} ${message.snippet} ${message.body_text}`,
+      );
+
+    const patterns = [
+      /application\s+for\s+the\s+(.{3,120}?)\s*\((?:job\s*)?id\s*[:#-]?/i,
+      /application\s+for\s+the\s+(.{3,120}?)\s+position\b/i,
+      /applied\s+for\s+the\s+(.{3,120}?)\s+(?:opening|position|role)\b/i,
+      /applied\s+for\s+(.{3,120}?)\s+(?:at|with)\s+[A-Z]/i,
+      /apply\s+for\s+the\s+(.{3,120}?)\s+role\b/i,
+      /position\s+of\s+(.{3,120}?)\s*\((?:job\s*)?id\s*[:#-]?/i,
+      /(?:position|role)\s*[:\-]\s*(.{3,120}?)(?:\.|,|$)/i,
+    ];
+
+    for (
+      const pattern of patterns
+    ) {
+      const match =
+        value.match(pattern);
+
+      if (match?.[1]) {
+        const candidate =
+          cleanExtractedText(
+            match[1],
+          );
+
+        if (
+          candidate.length >= 3 &&
+          candidate.length <= 120
+        ) {
+          return candidate;
+        }
+      }
+    }
+
+    const subjectCandidate =
+      message.subject.match(
+        /application\s+for\s+(.{3,100}?)(?:\s+at\s+|$)/i,
+      )?.[1];
+
+    return subjectCandidate
+      ? cleanExtractedText(
+          subjectCandidate,
+        )
+      : 'Role';
+  };
+
   const findLinkedApplication = (
     message: GmailSyncedMessage,
   ) => {
+    const currentApplications =
+      useCareerStore
+        .getState()
+        .trackedApplications;
+
+    const externalApplicationId =
+      extractExternalApplicationId(
+        message,
+      );
+
+    if (externalApplicationId) {
+      const exact =
+        currentApplications.find(
+          (application) =>
+            application.externalApplicationId ===
+            externalApplicationId,
+        );
+
+      if (exact) {
+        return exact;
+      }
+    }
+
     const haystack = normalize(
-      [
-        message.subject,
-        message.sender,
-        message.snippet,
-        message.body_text,
-      ].join(' '),
+      messageText(message),
     );
 
     const ranked =
-      trackedApplications
+      currentApplications
         .map((application) => {
           const company =
             normalize(
@@ -7862,7 +8630,7 @@ function InboxView({
               );
 
           score += Math.min(
-            2,
+            3,
             roleTokens.filter(
               (token) =>
                 haystack.includes(token),
@@ -7879,9 +8647,182 @@ function InboxView({
             b.score - a.score,
         );
 
-    return ranked[0]?.score >= 3
+    return ranked[0]?.score >= 4
       ? ranked[0].application
       : null;
+  };
+
+  const getAutomaticLifecycleUpdate = (
+    message: GmailSyncedMessage,
+  ) => {
+    const value =
+      normalize(
+        messageText(message),
+      );
+
+    if (
+      /\b(rejected|regret to inform|not moving forward|will not be moving forward|decided not to move forward|position has been filled)\b/.test(
+        value,
+      )
+    ) {
+      return {
+        type: 'Rejection' as const,
+        status:
+          'Rejected' as const,
+      };
+    }
+
+    if (
+      /\b(offer letter|employment offer|job offer|pleased to offer|we are pleased to offer)\b/.test(
+        value,
+      )
+    ) {
+      return {
+        type: 'Offer' as const,
+        status: 'Offer' as const,
+      };
+    }
+
+    if (
+      /\b(interview invitation|invite you to interview|schedule an interview|technical interview|phone interview|virtual interview|onsite interview|next round|technical round|coding round)\b/.test(
+        value,
+      )
+    ) {
+      return {
+        type: 'Interview' as const,
+        status:
+          'Interview' as const,
+      };
+    }
+
+    if (
+      /\b(screening|phone screen|screening call|online assessment|coding assessment|technical assessment|assessment invitation|complete the assessment|shortlisted|under review|reviewing your application)\b/.test(
+        value,
+      )
+    ) {
+      return {
+        type: 'Application' as const,
+        status:
+          'Screening' as const,
+      };
+    }
+
+    return null;
+  };
+
+  const createApplicationFromGmail = (
+    message: GmailSyncedMessage,
+  ) => {
+    const parsedDate =
+      Number.isNaN(
+        Date.parse(
+          message.date,
+        ),
+      )
+        ? new Date()
+        : new Date(
+            message.date,
+          );
+
+    const company =
+      inferCompanyFromMessage(
+        message,
+      );
+
+    const role =
+      inferRoleFromMessage(
+        message,
+      );
+
+    const externalApplicationId =
+      extractExternalApplicationId(
+        message,
+      );
+
+    const normalizedIdentity =
+      [
+        normalize(company),
+        normalize(role),
+      ]
+        .filter(Boolean)
+        .join('-')
+        .slice(0, 120);
+
+    const tracked = {
+      id:
+        `gmail-application-${externalApplicationId ?? message.id}`,
+      jobId:
+        externalApplicationId
+          ? `gmail-${externalApplicationId}`
+          : role === 'Role'
+            ? `gmail-${message.id}`
+            : `gmail-${normalizedIdentity || message.id}`,
+      company,
+      role,
+      source: 'Gmail',
+      status: 'Applied' as const,
+      fit: 0,
+      ghostRisk:
+        'low' as const,
+      appliedAt:
+        parsedDate.toISOString(),
+      date:
+        parsedDate.toLocaleDateString(
+          'en-US',
+          {
+            month: 'short',
+            day: '2-digit',
+          },
+        ),
+      resumeLabel:
+        'Imported from Gmail',
+      createdAt:
+        new Date().toISOString(),
+      updatedAt:
+        new Date().toISOString(),
+      importedFromGmail: true,
+      externalApplicationId,
+      lastSyncedEmailId:
+        message.id,
+    };
+
+    const existing =
+      useCareerStore
+        .getState()
+        .trackedApplications.find(
+          (application) =>
+            application.id ===
+              tracked.id ||
+            application.jobId ===
+              tracked.jobId,
+        );
+
+    if (existing) {
+      return {
+        application: existing,
+        created: false,
+      };
+    }
+
+    useCareerStore
+      .getState()
+      .addTrackedApplication(
+        tracked,
+      );
+
+    return {
+      application:
+        useCareerStore
+          .getState()
+          .trackedApplications.find(
+            (application) =>
+              application.id ===
+                tracked.id ||
+              application.jobId ===
+                tracked.jobId,
+          ) ?? tracked,
+      created: true,
+    };
   };
 
   const refreshGmailStatus = async () => {
@@ -7988,23 +8929,103 @@ function InboxView({
       const messages =
         await syncGmailMessages();
 
-      let imported = 0;
+      let importedEmails = 0;
+      let createdApplications = 0;
+      let updatedApplications = 0;
 
       for (const message of messages) {
-        const combined = [
-          message.subject,
-          message.sender,
-          message.snippet,
-          message.body_text,
-        ].join(' ');
-
-        const inferred =
-          inferUpdate(combined);
-
-        const linked =
+        let linked =
           findLinkedApplication(
             message,
           );
+
+        const isConfirmation =
+          isStrongApplicationConfirmation(
+            message,
+          );
+
+        const lifecycleUpdate =
+          getAutomaticLifecycleUpdate(
+            message,
+          );
+
+        /*
+         * Strict import rule:
+         * 1) A new tracker item is created only from a real application
+         *    confirmation (application/applied + received/submitted/etc.).
+         * 2) Screening/interview/offer/rejection emails are imported only
+         *    when they can be linked to an existing tracked application.
+         * 3) Generic recruiter/newsletter/job-alert mail is ignored.
+         */
+        if (
+          !linked &&
+          isConfirmation
+        ) {
+          const created =
+            createApplicationFromGmail(
+              message,
+            );
+
+          linked =
+            created.application;
+
+          if (created.created) {
+            createdApplications += 1;
+          }
+        }
+
+        if (
+          !linked &&
+          !isConfirmation
+        ) {
+          continue;
+        }
+
+        if (
+          linked &&
+          lifecycleUpdate &&
+          linked.status !==
+            lifecycleUpdate.status
+        ) {
+          useCareerStore
+            .getState()
+            .updateTrackedApplication(
+              linked.id,
+              {
+                status:
+                  lifecycleUpdate.status,
+                lastSyncedEmailId:
+                  message.id,
+              },
+            );
+
+          updatedApplications += 1;
+        } else if (linked) {
+          useCareerStore
+            .getState()
+            .updateTrackedApplication(
+              linked.id,
+              {
+                lastSyncedEmailId:
+                  message.id,
+              },
+            );
+        }
+
+        const inferred =
+          lifecycleUpdate
+            ? {
+                type:
+                  lifecycleUpdate.type,
+                suggestedStatus:
+                  lifecycleUpdate.status,
+              }
+            : {
+                type:
+                  'Application' as const,
+                suggestedStatus:
+                  'Applied' as const,
+              };
 
         const before =
           useCareerStore
@@ -8049,14 +9070,38 @@ function InboxView({
             .careerInboxEvents.length;
 
         if (after > before) {
-          imported += 1;
+          importedEmails += 1;
         }
       }
 
+      const summary: string[] = [];
+
+      if (
+        createdApplications > 0
+      ) {
+        summary.push(
+          `${createdApplications} application${createdApplications === 1 ? '' : 's'} added to Applications`,
+        );
+      }
+
+      if (
+        updatedApplications > 0
+      ) {
+        summary.push(
+          `${updatedApplications} status update${updatedApplications === 1 ? '' : 's'} applied`,
+        );
+      }
+
+      if (importedEmails > 0) {
+        summary.push(
+          `${importedEmails} relevant email${importedEmails === 1 ? '' : 's'} synced`,
+        );
+      }
+
       setGmailMessage(
-        imported > 0
-          ? `Imported ${imported} new career email${imported === 1 ? '' : 's'}.`
-          : 'Gmail is up to date. No new career emails were added.',
+        summary.length > 0
+          ? `${summary.join(' · ')}.`
+          : 'Gmail is up to date. No new application confirmations or linked status updates were found.',
       );
 
       await refreshGmailStatus();
@@ -8065,11 +9110,6 @@ function InboxView({
         error instanceof GmailSyncError &&
         error.status === 401
       ) {
-        /*
-         * The backend token is no longer usable. Do not keep showing the
-         * mailbox as connected: that creates the exact "Connected but 0 mail"
-         * state we want to avoid.
-         */
         setGmailStatus({
           connected: false,
           email: null,
@@ -8091,8 +9131,6 @@ function InboxView({
             : 'Could not sync Gmail.',
         );
 
-        // Refresh the status even for non-401 failures so the UI never keeps
-        // a stale connection badge.
         await refreshGmailStatus();
       }
     } finally {
@@ -9625,6 +10663,7 @@ function MatchBar({
 ========================================================= */
 
 type TailorResume = {
+  raw_text?: string | null;
   personal_info?: {
     full_name?: string | null;
     email?: string | null;
@@ -10703,7 +11742,8 @@ function ResumeTailor({
                   <p>{subtitle}</p>
                   <pre>
                     {
-                      sourceResume.raw_text
+                      sourceResume.raw_text ??
+                      ''
                     }
                   </pre>
                 </div>
@@ -11325,6 +12365,12 @@ function ApplicationDetail({
         state.updateTrackedApplicationStatus,
     );
 
+  const updateTrackedApplication =
+    useCareerStore(
+      (state) =>
+        state.updateTrackedApplication,
+    );
+
   const deleteTrackedApplication =
     useCareerStore(
       (state) =>
@@ -11399,6 +12445,52 @@ function ApplicationDetail({
     );
   };
 
+  const editApplicationDetails = () => {
+    const company =
+      window.prompt(
+        'Company',
+        selected.company,
+      );
+
+    if (company === null) {
+      return;
+    }
+
+    const role =
+      window.prompt(
+        'Role',
+        selected.role,
+      );
+
+    if (role === null) {
+      return;
+    }
+
+    const nextCompany =
+      company.trim();
+
+    const nextRole =
+      role.trim();
+
+    if (
+      !nextCompany ||
+      !nextRole
+    ) {
+      window.alert(
+        'Company and role cannot be empty.',
+      );
+      return;
+    }
+
+    updateTrackedApplication(
+      selected.id,
+      {
+        company: nextCompany,
+        role: nextRole,
+      },
+    );
+  };
+
   const deleteApplication = () => {
     const confirmed =
       window.confirm(
@@ -11434,19 +12526,36 @@ function ApplicationDetail({
         }
         subtitle={`${selected.role} · ${selected.source}`}
         action={
-          selected.url ? (
+          <div
+            style={{
+              display: 'flex',
+              gap: '8px',
+              flexWrap: 'wrap',
+            }}
+          >
             <Button
               variant="secondary"
               onClick={
-                openOriginal
+                editApplicationDetails
               }
             >
-              Open original
-              <ExternalLink
-                size={15}
-              />
+              Edit details
             </Button>
-          ) : undefined
+
+            {selected.url && (
+              <Button
+                variant="secondary"
+                onClick={
+                  openOriginal
+                }
+              >
+                Open original
+                <ExternalLink
+                  size={15}
+                />
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -11477,14 +12586,18 @@ function ApplicationDetail({
                   selected.date
                 }
                 title="Applied"
-                text={`Confirmed manually after submission on the original ${selected.source} page.`}
+                text={
+                  selected.importedFromGmail
+                    ? 'Verified from an application confirmation email synced from Gmail.'
+                    : `Confirmed manually after submission on the original ${selected.source} page.`
+                }
                 done
               />
 
               <TimelineItem
                 date="Next"
                 title="Watch for updates"
-                text="Move the application to Screening, Interview, Offer or Rejected when the employer responds."
+                text="RoleClear can sync linked screening, interview, offer and rejection emails automatically. You can still override the status manually."
                 active
               />
             </div>
@@ -11573,20 +12686,42 @@ function ApplicationDetail({
 
             <DetailPair
               label="Resume Fit"
-              value={`${selected.fit}%`}
+              value={
+                selected.importedFromGmail
+                  ? 'Not analyzed'
+                  : `${selected.fit}%`
+              }
             />
 
             <DetailPair
               label="Ghost Risk"
               value={
-                selected.ghostRisk
-                  .charAt(0)
-                  .toUpperCase() +
-                selected.ghostRisk.slice(
-                  1,
-                )
+                selected.importedFromGmail
+                  ? 'Not analyzed'
+                  : selected.ghostRisk
+                      .charAt(0)
+                      .toUpperCase() +
+                    selected.ghostRisk.slice(
+                      1,
+                    )
               }
             />
+
+            {selected.externalApplicationId && (
+              <DetailPair
+                label="Application ID"
+                value={
+                  selected.externalApplicationId
+                }
+              />
+            )}
+
+            {selected.importedFromGmail && (
+              <DetailPair
+                label="Imported"
+                value="Verified from Gmail"
+              />
+            )}
           </div>
 
           <div className="detail-card">
@@ -13421,92 +14556,79 @@ function MobileNav({
 ========================================================= */
 
 export default function App() {
-  useEffect(() => {
-    let link = document.querySelector<HTMLLinkElement>(
-      'link[rel~="icon"]',
-    );
+  const {
+    isLoaded,
+    isSignedIn,
+  } = useAuth();
 
-    if (!link) {
-      link = document.createElement('link');
-      link.rel = 'icon';
-      document.head.appendChild(link);
-    }
-
-    link.type = 'image/svg+xml';
-    link.href = '/roleclear-icon.svg';
-  }, []);
-  const [auth, setAuth] =
-    useState<AuthView>('landing');
-
-  const [
-    authReady,
-    setAuthReady,
-  ] = useState(false);
-
-  const [
-    signedIn,
-    setSignedIn,
-  ] = useState(false);
+  const {
+    signOut,
+  } = useClerk();
 
   useEffect(() => {
-    let mounted = true;
-
-    supabase.auth
-      .getSession()
-      .then(
-        ({ data }) => {
-          if (!mounted) return;
-
-          setSignedIn(
-            Boolean(
-              data.session,
-            ),
-          );
-          setAuthReady(true);
-        },
-      )
-      .catch(() => {
-        if (!mounted) return;
-
-        setSignedIn(false);
-        setAuthReady(true);
-      });
-
-    const {
-      data: {
-        subscription,
-      },
-    } =
-      supabase.auth.onAuthStateChange(
-        (_event, session) => {
-          if (!mounted) return;
-
-          setSignedIn(
-            Boolean(session),
-          );
-
-          if (session) {
-            setAuth('landing');
-          }
-
-          setAuthReady(true);
-        },
+    let link =
+      document.querySelector<HTMLLinkElement>(
+        'link[rel~="icon"]',
       );
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
+    if (!link) {
+      link =
+        document.createElement(
+          'link',
+        );
+      link.rel = 'icon';
+      document.head.appendChild(
+        link,
+      );
+    }
+
+    link.type =
+      'image/svg+xml';
+    link.href =
+      '/roleclear-icon.svg';
   }, []);
+
+  const [
+    auth,
+    setAuth,
+  ] =
+    useState<AuthView>(
+      'landing',
+    );
 
   const handleLogout =
     async () => {
-      await supabase.auth.signOut();
-      setSignedIn(false);
-      setAuth('landing');
+      await signOut();
+
+      setAuth(
+        'landing',
+      );
+
+      window.requestAnimationFrame(
+        () => {
+          window.scrollTo({
+            top: 0,
+            left: 0,
+            behavior: 'auto',
+          });
+        },
+      );
     };
 
-  if (!authReady) {
+  if (
+    window.location.pathname ===
+    '/sso-callback'
+  ) {
+    return (
+      <AuthenticateWithRedirectCallback
+        signInFallbackRedirectUrl="/"
+        signUpFallbackRedirectUrl="/"
+        continueSignUpUrl="/"
+      />
+    );
+  }
+
+  if (!isLoaded) {
     return (
       <div
         style={{
@@ -13523,7 +14645,7 @@ export default function App() {
     );
   }
 
-  if (signedIn) {
+  if (isSignedIn) {
     return (
       <AppShell
         onLogout={
@@ -13533,10 +14655,15 @@ export default function App() {
     );
   }
 
-  if (auth === 'landing') {
+  if (
+    auth ===
+    'landing'
+  ) {
     return (
       <Landing
-        onAuth={setAuth}
+        onAuth={
+          setAuth
+        }
       />
     );
   }
@@ -13549,7 +14676,9 @@ export default function App() {
           | 'signup'
           | 'otp'
       }
-      onAuth={setAuth}
+      onAuth={
+        setAuth
+      }
     />
   );
 }

@@ -342,7 +342,7 @@ export default function Analytics() {
                 ))}
               </div>
               <div className="analytics-trend-summary">
-                <strong>{linePoints.at(-1)?.cumulative ?? 0}</strong>
+                <strong>{linePoints[linePoints.length - 1]?.cumulative ?? 0}</strong>
                 <span>cumulative applications</span>
               </div>
             </div>
