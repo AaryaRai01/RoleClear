@@ -1,5 +1,78 @@
-const CLERK_FAPI =
-  'https://frontend-api.clerk.dev';
+const CLERK_FAPI = 'https://frontend-api.clerk.dev';
+
+function firstHeaderValue(value) {
+  if (Array.isArray(value)) {
+    return value[0] || '';
+  }
+
+  return String(value || '');
+}
+
+function serializeRequestBody(req, headers) {
+  if (
+    req.method === 'GET' ||
+    req.method === 'HEAD' ||
+    req.body === undefined ||
+    req.body === null
+  ) {
+    return undefined;
+  }
+
+  if (
+    typeof req.body === 'string' ||
+    Buffer.isBuffer(req.body)
+  ) {
+    return req.body;
+  }
+
+  const contentType =
+    firstHeaderValue(
+      headers['content-type'],
+    ).toLowerCase();
+
+  if (
+    contentType.includes(
+      'application/x-www-form-urlencoded',
+    )
+  ) {
+    const params =
+      new URLSearchParams();
+
+    for (
+      const [key, value]
+      of Object.entries(req.body)
+    ) {
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          params.append(
+            key,
+            String(item),
+          );
+        }
+      } else if (
+        value !== undefined &&
+        value !== null
+      ) {
+        params.append(
+          key,
+          String(value),
+        );
+      }
+    }
+
+    return params.toString();
+  }
+
+  if (
+    contentType.includes(
+      'application/json',
+    )
+  ) {
+    return JSON.stringify(req.body);
+  }
+
+  return JSON.stringify(req.body);
+}
 
 export default async function handler(
   req,
@@ -15,27 +88,35 @@ export default async function handler(
     return res.status(500).json({
       error:
         'Clerk proxy environment variables are missing.',
+      hasSecretKey:
+        Boolean(secretKey),
+      hasProxyUrl:
+        Boolean(proxyUrl),
     });
   }
 
-  const pathParam =
+  const rawPath =
     req.query.path || '';
 
-  const path = Array.isArray(pathParam)
-    ? pathParam.join('/')
-    : pathParam;
+  const path =
+    Array.isArray(rawPath)
+      ? rawPath.join('/')
+      : String(rawPath);
 
-  const searchParams =
+  const query =
     new URLSearchParams();
 
-  for (const [key, value] of Object.entries(
-    req.query,
-  )) {
-    if (key === 'path') continue;
+  for (
+    const [key, value]
+    of Object.entries(req.query)
+  ) {
+    if (key === 'path') {
+      continue;
+    }
 
     if (Array.isArray(value)) {
       for (const item of value) {
-        searchParams.append(
+        query.append(
           key,
           String(item),
         );
@@ -43,88 +124,78 @@ export default async function handler(
     } else if (
       value !== undefined
     ) {
-      searchParams.append(
+      query.append(
         key,
         String(value),
       );
     }
   }
 
-  const query =
-    searchParams.toString();
-
   const targetUrl =
     `${CLERK_FAPI}/${path}` +
-    (query ? `?${query}` : '');
-
-  const forwardedFor =
-    String(
-      req.headers[
-        'x-forwarded-for'
-      ] ||
-        req.socket?.remoteAddress ||
-        '',
-    )
-      .split(',')[0]
-      .trim();
+    (
+      query.toString()
+        ? `?${query.toString()}`
+        : ''
+    );
 
   const headers = {
     ...req.headers,
-    'clerk-proxy-url':
-      proxyUrl,
-    'clerk-secret-key':
-      secretKey,
-    'x-forwarded-for':
-      forwardedFor,
   };
 
   delete headers.host;
   delete headers['content-length'];
 
-  let body;
+  headers['clerk-proxy-url'] =
+    proxyUrl;
 
-  if (
-    req.method !== 'GET' &&
-    req.method !== 'HEAD'
-  ) {
-    if (
-      typeof req.body === 'string' ||
-      Buffer.isBuffer(req.body)
-    ) {
-      body = req.body;
-    } else if (
-      req.body !== undefined
-    ) {
-      body = JSON.stringify(
-        req.body,
-      );
+  headers['clerk-secret-key'] =
+    secretKey;
 
-      if (
-        !headers['content-type']
-      ) {
-        headers['content-type'] =
-          'application/json';
-      }
-    }
-  }
+  headers['x-forwarded-for'] =
+    firstHeaderValue(
+      req.headers[
+        'x-forwarded-for'
+      ],
+    ) ||
+    firstHeaderValue(
+      req.headers['x-real-ip'],
+    ) ||
+    req.socket?.remoteAddress ||
+    '';
+
+  const body =
+    serializeRequestBody(
+      req,
+      headers,
+    );
 
   try {
     const response =
       await fetch(
         targetUrl,
         {
-          method: req.method,
+          method:
+            req.method,
           headers,
           body,
-          redirect: 'manual',
+          redirect:
+            'manual',
         },
       );
 
     response.headers.forEach(
       (value, key) => {
+        const lower =
+          key.toLowerCase();
+
         if (
-          key.toLowerCase() ===
-          'content-encoding'
+          lower ===
+            'content-encoding' ||
+          lower ===
+            'content-length' ||
+          lower ===
+            'transfer-encoding'
         ) {
           return;
         }
@@ -136,14 +207,14 @@ export default async function handler(
       },
     );
 
-    const buffer =
+    const payload =
       Buffer.from(
         await response.arrayBuffer(),
       );
 
     return res
       .status(response.status)
-      .send(buffer);
+      .send(payload);
   } catch (error) {
     console.error(
       'Clerk proxy error:',

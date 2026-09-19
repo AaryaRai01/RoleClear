@@ -981,33 +981,40 @@ function Auth({
     };
 
   const handleGoogleAuth =
-    async () => {
-      setSubmitting(true);
-      setAuthError('');
-      setAuthMessage('');
+  async () => {
+    setSubmitting(true);
+    setAuthError('');
+    setAuthMessage('');
 
-      try {
-        const origin =
-          window.location.origin;
+    try {
+      const origin =
+        window.location.origin;
 
-        await signIn.authenticateWithRedirect({
+      const {
+        error,
+      } =
+        await signIn.sso({
           strategy:
             'oauth_google',
-          redirectUrl:
+          redirectCallbackUrl:
             `${origin}/sso-callback`,
-          redirectUrlComplete:
+          redirectUrl:
             origin,
         });
-      } catch (error) {
-        setAuthError(
-          errorText(
-            error,
-            'Google sign-in failed.',
-          ),
-        );
-        setSubmitting(false);
+
+      if (error) {
+        throw error;
       }
-    };
+    } catch (error) {
+      setAuthError(
+        errorText(
+          error,
+          'Google sign-in failed.',
+        ),
+      );
+      setSubmitting(false);
+    }
+  };
 
   const handleForgotPassword =
     async () => {
