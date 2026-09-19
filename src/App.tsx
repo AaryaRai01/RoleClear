@@ -990,21 +990,14 @@ function Auth({
         const origin =
           window.location.origin;
 
-        const {
-          error,
-        } =
-          await signIn.sso({
-            strategy:
-              'oauth_google',
-            redirectCallbackUrl:
-              `${origin}/sso-callback`,
-            redirectUrl:
-              origin,
-          });
-
-        if (error) {
-          throw error;
-        }
+        await signIn.authenticateWithRedirect({
+          strategy:
+            'oauth_google',
+          redirectUrl:
+            `${origin}/sso-callback`,
+          redirectUrlComplete:
+            origin,
+        });
       } catch (error) {
         setAuthError(
           errorText(
