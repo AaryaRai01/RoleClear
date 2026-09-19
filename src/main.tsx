@@ -8,6 +8,9 @@ import './index.css';
 const clerkPublishableKey =
   import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
+const clerkProxyUrl =
+  import.meta.env.VITE_CLERK_PROXY_URL;
+
 if (!clerkPublishableKey) {
   throw new Error(
     'Missing VITE_CLERK_PUBLISHABLE_KEY',
@@ -20,6 +23,7 @@ ReactDOM.createRoot(
   <React.StrictMode>
     <ClerkProvider
       publishableKey={clerkPublishableKey}
+      proxyUrl={clerkProxyUrl}
     >
       <App />
     </ClerkProvider>
