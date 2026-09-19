@@ -1,4 +1,5 @@
-const CLERK_FAPI = 'https://frontend-api.clerk.dev';
+const CLERK_FAPI =
+  'https://frontend-api.clerk.dev';
 
 function firstHeaderValue(value) {
   if (Array.isArray(value)) {
@@ -8,7 +9,10 @@ function firstHeaderValue(value) {
   return String(value || '');
 }
 
-function serializeRequestBody(req, headers) {
+function serializeRequestBody(
+  req,
+  headers,
+) {
   if (
     req.method === 'GET' ||
     req.method === 'HEAD' ||
@@ -63,15 +67,47 @@ function serializeRequestBody(req, headers) {
     return params.toString();
   }
 
-  if (
-    contentType.includes(
-      'application/json',
-    )
-  ) {
-    return JSON.stringify(req.body);
+  return JSON.stringify(req.body);
+}
+
+function rewriteLocation(
+  location,
+  proxyUrl,
+) {
+  if (!location) {
+    return location;
   }
 
-  return JSON.stringify(req.body);
+  const cleanProxy =
+    proxyUrl.replace(/\/$/, '');
+
+  /*
+   * Clerk may return redirects such as:
+   * /v1/oauth_callback?...
+   *
+   * Because the browser is accessing Clerk through
+   * /__clerk, keep redirects inside that proxy path.
+   */
+  if (location.startsWith('/')) {
+    return `${cleanProxy}${location}`;
+  }
+
+  /*
+   * If Clerk returns an absolute Frontend API URL,
+   * rewrite that back through our application proxy.
+   */
+  if (
+    location.startsWith(
+      CLERK_FAPI,
+    )
+  ) {
+    return location.replace(
+      CLERK_FAPI,
+      cleanProxy,
+    );
+  }
+
+  return location;
 }
 
 export default async function handler(
@@ -131,11 +167,14 @@ export default async function handler(
     }
   }
 
+  const queryString =
+    query.toString();
+
   const targetUrl =
     `${CLERK_FAPI}/${path}` +
     (
-      query.toString()
-        ? `?${query.toString()}`
+      queryString
+        ? `?${queryString}`
         : ''
     );
 
@@ -159,7 +198,9 @@ export default async function handler(
       ],
     ) ||
     firstHeaderValue(
-      req.headers['x-real-ip'],
+      req.headers[
+        'x-real-ip'
+      ],
     ) ||
     req.socket?.remoteAddress ||
     '';
@@ -197,6 +238,20 @@ export default async function handler(
           lower ===
             'transfer-encoding'
         ) {
+          return;
+        }
+
+        if (
+          lower === 'location'
+        ) {
+          res.setHeader(
+            key,
+            rewriteLocation(
+              value,
+              proxyUrl,
+            ),
+          );
+
           return;
         }
 
