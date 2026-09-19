@@ -8113,12 +8113,6 @@ function InboxView({
         state.deleteCareerInboxEvent,
     );
 
-  const applyCareerInboxEventStatus =
-    useCareerStore(
-      (state) =>
-        state.applyCareerInboxEventStatus,
-    );
-
   const setSelectedApplication =
     useCareerStore(
       (state) =>
@@ -8981,6 +8975,21 @@ function InboxView({
           continue;
         }
 
+        /*
+         * If the message is linked to an existing application but is neither
+         * a real application confirmation nor a recognised lifecycle update,
+         * ignore it. This prevents messages such as "application incomplete"
+         * or generic "keep track of your application" reminders from being
+         * imported as Applied updates.
+         */
+        if (
+          linked &&
+          !isConfirmation &&
+          !lifecycleUpdate
+        ) {
+          continue;
+        }
+
         if (
           linked &&
           lifecycleUpdate &&
@@ -9702,25 +9711,21 @@ function InboxView({
                         }}
                       >
                         <span className="mini-label">
-                          Suggested tracker update:
-                          {' '}
-                          {
-                            event.suggestedStatus
-                          }
+                          {event.source ===
+                            'gmail' &&
+                          event.applicationId
+                            ? `✓ ${
+                                event.suggestedStatus ===
+                                'Applied'
+                                  ? 'Synced to Applications'
+                                  : 'Application updated'
+                              } · ${
+                                event.suggestedStatus
+                              }`
+                            : `Suggested tracker update: ${
+                                event.suggestedStatus
+                              }`}
                         </span>
-
-                        {event.applicationId && (
-                          <Button
-                            variant="secondary"
-                            onClick={() =>
-                              applyCareerInboxEventStatus(
-                                event.id,
-                              )
-                            }
-                          >
-                            Apply status
-                          </Button>
-                        )}
                       </div>
                     )}
                   </div>
