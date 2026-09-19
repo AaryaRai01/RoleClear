@@ -1076,12 +1076,63 @@ def _is_application_mail(
         body_text,
     )
 
-    if _is_blocked_source(
+    blocked_source = _is_blocked_source(
         sender=sender,
         subject=subject,
         snippet=snippet,
         body_text=body_text,
-    ) and not _has_unmistakable_transactional_signal(text):
+    )
+
+    unmistakable = (
+        _has_unmistakable_transactional_signal(
+            text
+        )
+    )
+
+    # Keep genuine application-context mail visible in Career Inbox even
+    # when it is informational and should NOT change tracker status.
+    # Examples: "application incomplete", "keep track of your application",
+    # and other messages that clearly refer to the user's submitted application.
+    application_context = any(
+        signal in text
+        for signal in (
+            "your application",
+            "application for",
+            "application status",
+            "application is incomplete",
+            "application incomplete",
+            "complete your application",
+            "keep track of your application",
+            "applied for",
+            "applied to",
+        )
+    )
+
+    lifecycle_context = any(
+        signal in text
+        for signal in (
+            "screening",
+            "assessment",
+            "interview",
+            "next round",
+            "shortlisted",
+            "offer letter",
+            "pleased to offer",
+            "not moving forward",
+            "regret to inform",
+            "rejected",
+        )
+    )
+
+    # Known discovery/newsletter sources still need a concrete transactional
+    # or application-specific signal. This prevents generic job alerts from
+    # flooding Career Inbox while allowing real application mail through.
+    if (
+        blocked_source
+        and not unmistakable
+        and not application_context
+        and not lifecycle_context
+    ):
         return False
 
     score, _ = _career_message_score(
@@ -1091,8 +1142,11 @@ def _is_application_mail(
         body_text=body_text,
     )
 
-    # Precision-first threshold.
-    return score >= 5
+    return (
+        score >= 5
+        or application_context
+        or lifecycle_context
+    )
 
 
 async def sync_career_messages(

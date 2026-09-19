@@ -8968,27 +8968,16 @@ function InboxView({
           }
         }
 
-        if (
-          !linked &&
-          !isConfirmation
-        ) {
-          continue;
-        }
-
         /*
-         * If the message is linked to an existing application but is neither
-         * a real application confirmation nor a recognised lifecycle update,
-         * ignore it. This prevents messages such as "application incomplete"
-         * or generic "keep track of your application" reminders from being
-         * imported as Applied updates.
+         * Career Inbox and Applications have different responsibilities:
+         * - Career Inbox keeps relevant application-related mail visible.
+         * - Applications changes only on strong confirmations or recognised
+         *   lifecycle updates.
+         *
+         * Therefore reminder/incomplete/status-check emails remain visible
+         * without changing the tracker. Unlinked lifecycle emails are also
+         * kept in the Inbox for review instead of being silently discarded.
          */
-        if (
-          linked &&
-          !isConfirmation &&
-          !lifecycleUpdate
-        ) {
-          continue;
-        }
 
         if (
           linked &&
@@ -9027,14 +9016,22 @@ function InboxView({
                 type:
                   lifecycleUpdate.type,
                 suggestedStatus:
-                  lifecycleUpdate.status,
+                  linked
+                    ? lifecycleUpdate.status
+                    : null,
               }
-            : {
-                type:
-                  'Application' as const,
-                suggestedStatus:
-                  'Applied' as const,
-              };
+            : isConfirmation
+              ? {
+                  type:
+                    'Application' as const,
+                  suggestedStatus:
+                    'Applied' as const,
+                }
+              : {
+                  type:
+                    'Application' as const,
+                  suggestedStatus: null,
+                };
 
         const before =
           useCareerStore
@@ -9696,7 +9693,9 @@ function InboxView({
                       </p>
                     )}
 
-                    {event.suggestedStatus && (
+                    {(event.suggestedStatus ||
+                      event.source ===
+                        'gmail') && (
                       <div
                         style={{
                           display:
@@ -9712,19 +9711,25 @@ function InboxView({
                       >
                         <span className="mini-label">
                           {event.source ===
-                            'gmail' &&
-                          event.applicationId
-                            ? `✓ ${
-                                event.suggestedStatus ===
-                                'Applied'
-                                  ? 'Synced to Applications'
-                                  : 'Application updated'
-                              } · ${
-                                event.suggestedStatus
-                              }`
-                            : `Suggested tracker update: ${
-                                event.suggestedStatus
-                              }`}
+                          'gmail'
+                            ? event.applicationId &&
+                              event.suggestedStatus
+                              ? `✓ ${
+                                  event.suggestedStatus ===
+                                  'Applied'
+                                    ? 'Synced to Applications'
+                                    : 'Application updated'
+                                } · ${
+                                  event.suggestedStatus
+                                }`
+                              : event.applicationId
+                                ? 'Application mail · No tracker change'
+                                : 'Needs review · Not linked to an application'
+                            : event.suggestedStatus
+                              ? `Suggested tracker update: ${
+                                  event.suggestedStatus
+                                }`
+                              : ''}
                         </span>
                       </div>
                     )}
