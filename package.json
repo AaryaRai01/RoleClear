@@ -11,8 +11,10 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json"
   },
   "dependencies": {
+    "@clerk/express": "^2.1.69",
     "@clerk/react": "^6.16.1",
     "@supabase/supabase-js": "^2.116.0",
+    "express": "^5.2.1",
     "lucide-react": "^0.446.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
